@@ -1,0 +1,37 @@
+import Dexie, { type EntityTable } from 'dexie'
+
+export interface Subtask {
+  id: string
+  title: string
+  done: boolean
+}
+
+export interface Task {
+  id: string
+  title: string
+  note: string
+  /** YYYY-MM-DD；为 null 表示在收集箱 */
+  date: string | null
+  /** HH:mm */
+  time: string | null
+  star: boolean
+  tag: string | null
+  done: boolean
+  /** 完成时间 ISO 字符串 */
+  doneAt: string | null
+  /** 同一天内的手动排序，越小越靠前 */
+  order: number
+  subtasks: Subtask[]
+  createdAt: string
+  /** 以下两个字段为多设备同步准备：按 updatedAt 合并，删除用软删除标记 */
+  updatedAt: string
+  deletedAt: string | null
+}
+
+export const db = new Dexie('mylog') as Dexie & {
+  tasks: EntityTable<Task, 'id'>
+}
+
+db.version(1).stores({
+  tasks: 'id, date, done, updatedAt',
+})
