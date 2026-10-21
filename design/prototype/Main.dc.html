@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>MyLog · 今天</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#3A5CCC}a:hover{color:#2B479F}
+button{font-family:inherit}
+input{font-family:inherit}
+input::placeholder{color:#8A9099}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-wrap: wrap; background: #FFFFFF; color: #1F2328; font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; font-size: 14px">
+
+  <nav aria-label="主导航" style="flex: 1 1 220px; box-sizing: border-box; background: #F7F7F5; border-right: 1px solid #ECECE9; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 10px 16px">
+      <span style="font-size: 17px; font-weight: 600; letter-spacing: 0.2px">MyLog</span>
+      <button aria-label="搜索" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 6px; color: #5E6670; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      </button>
+    </div>
+    <a href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 10px; border-radius: 8px; background: #E9EDF8; color: #1F2328; text-decoration: none; font-weight: 500">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3A5CCC" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+      <span style="flex: 1">今天</span>
+      <span style="color: #5E6670; font-size: 13px">{{activeCount}}</span>
+    </a>
+    <a href="Inbox.dc.html" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6670" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
+      <span style="flex: 1">收集箱</span>
+      <span style="color: #5E6670; font-size: 13px">4</span>
+    </a>
+    <a href="Later.dc.html" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6670" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+      <span style="flex: 1">以后</span>
+      <span style="color: #5E6670; font-size: 13px">11</span>
+    </a>
+    <a href="Log.dc.html" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6670" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z"></path><path d="M20 17v4H6.5A2.5 2.5 0 0 1 4 19.5"></path></svg>
+      <span style="flex: 1">日志</span>
+    </a>
+
+    <div style="flex: 1; min-height: 24px"></div>
+
+    <a href="Settings.dc.html" style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; color: #1F2328; text-decoration: none">
+      <span style="width: 28px; height: 28px; border-radius: 50%; background: #DDE3F5; color: #2B479F; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex: none">[我]</span>
+      <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+        <span style="font-size: 13px">[你的名字]</span>
+        <span style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: #5E6670">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F7D4F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H7a5 5 0 1 1 .9-9.92A6 6 0 0 1 19 11a4 4 0 0 1-1.5 8z"></path><path d="m9 14 2 2 4-4"></path></svg>
+          已同步 · 3 台设备
+        </span>
+      </span>
+    </a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px 32px 64px; display: flex; justify-content: center">
+    <div style="width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 24px">
+
+      <header style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h1 style="margin: 0; font-size: 28px; font-weight: 600; line-height: 36px">今天</h1>
+          <span style="color: #5E6670; font-size: 14px">10月21日 周三</span>
+        </div>
+        <a href="Log.dc.html" style="display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border: 1px solid #E1E3E8; border-radius: 8px; color: #1F2328; text-decoration: none; font-size: 13px">结束今天</a>
+      </header>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; font-size: 13px; color: #5E6670">
+          <span>已完成 {{doneCount}} / {{totalCount}}</span>
+          <span>{{pct}}%</span>
+        </div>
+        <div style="height: 4px; background: #EEEFF1; border-radius: 2px; overflow: hidden">
+          <div style="{{barStyle}}"></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 14px; border: 1px solid #DADDE3; border-radius: 10px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,40,0.04)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3A5CCC" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+          <label for="quick-add" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap">添加一件事</label>
+          <input id="quick-add" value="{{draft}}" onChange="{{onDraft}}" onKeyDown="{{onKey}}" placeholder="添加一件事，回车保存。试试：明天下午3点 给物业打电话 !" style="flex: 1; min-width: 0; border: 0; outline: none; font-size: 15px; color: #1F2328; background: transparent; height: 100%">
+          <span style="flex: none; font-size: 12px; color: #5E6670; border: 1px solid #E1E3E8; border-radius: 4px; padding: 1px 6px">Ctrl K</span>
+        </div>
+        <sc-if value="{{hasDraft}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 0 4px; font-size: 12px; color: #5E6670">
+            <span>识别到</span>
+            <sc-for list="{{chips}}" as="c" hint-placeholder-count="2">
+              <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 4px; background: #EEF2FC; color: #2B479F">{{c.label}}</span>
+            </sc-for>
+            <span>· 回车加入「{{target}}」</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+          <div role="status" style="padding: 0 4px; font-size: 12px; color: #2F7D4F">{{toast}}</div>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{legacyOpen}}" hint-placeholder-val="{{ true }}">
+        <section aria-label="昨天遗留" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-radius: 10px; background: #F7F7F5">
+          <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 14px; font-weight: 500">昨天遗留 2 件</span>
+            <span style="font-size: 13px; color: #5E6670">预约体检、更新简历里的项目经历</span>
+          </div>
+          <a href="Plan.dc.html" style="display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 8px; color: #1F2328; text-decoration: none; font-size: 13px">逐条处理</a>
+          <button onClick="{{moveLegacy}}" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #DADDE3; background: #FFFFFF; color: #1F2328; font-size: 13px; cursor: pointer">全部移到今天</button>
+        </section>
+      </sc-if>
+
+      <section aria-label="待完成" style="display: flex; flex-direction: column">
+        <sc-for list="{{active}}" as="t" hint-placeholder-count="6">
+          <div style="display: flex; align-items: center; gap: 6px; padding: 6px 6px; border-bottom: 1px solid #F0F0EE">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#C4C8CF" aria-hidden="true"><circle cx="9" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="9" cy="12" r="1.6"></circle><circle cx="15" cy="12" r="1.6"></circle><circle cx="9" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle></svg>
+            <button aria-label="完成：{{t.title}}" onClick="{{t.toggle}}" style="width: 40px; height: 40px; flex: none; border: 0; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer">
+              <span style="width: 20px; height: 20px; border-radius: 50%; border: 1.6px solid #9AA1AC; box-sizing: border-box"></span>
+            </button>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 4px 0">
+              <span style="font-size: 15px; line-height: 22px; color: #1F2328">{{t.title}}</span>
+              <sc-if value="{{t.hasMeta}}" hint-placeholder-val="{{ false }}">
+                <span style="display: flex; align-items: center; gap: 12px; font-size: 12px; color: #5E6670">
+                  <sc-if value="{{t.time}}" hint-placeholder-val="{{ false }}">
+                    <span style="display: inline-flex; align-items: center; gap: 4px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>{{t.time}}</span>
+                  </sc-if>
+                  <sc-if value="{{t.sub}}" hint-placeholder-val="{{ false }}">
+                    <span style="display: inline-flex; align-items: center; gap: 4px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"></path></svg>{{t.sub}}</span>
+                  </sc-if>
+                  <sc-if value="{{t.repeat}}" hint-placeholder-val="{{ false }}">
+                    <span style="display: inline-flex; align-items: center; gap: 4px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"></path><path d="M3 11V9a3 3 0 0 1 3-3h15"></path><path d="M7 22l-4-4 4-4"></path><path d="M21 13v2a3 3 0 0 1-3 3H3"></path></svg>{{t.repeat}}</span>
+                  </sc-if>
+                  <sc-if value="{{t.tag}}" hint-placeholder-val="{{ false }}">
+                    <span>#{{t.tag}}</span>
+                  </sc-if>
+                </span>
+              </sc-if>
+            </div>
+            <sc-if value="{{t.star}}" hint-placeholder-val="{{ false }}">
+              <svg role="img" aria-label="重要" width="16" height="16" viewBox="0 0 24 24" fill="#B45309" stroke="#B45309" stroke-width="1.5" stroke-linejoin="round" style="flex: none; margin-right: 8px"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
+            </sc-if>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{allClear}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 48px 0; display: flex; flex-direction: column; align-items: center; gap: 6px; color: #5E6670">
+            <span style="font-size: 16px; color: #1F2328">今天的事都做完了</span>
+            <span style="font-size: 13px">好好休息。</span>
+          </div>
+        </sc-if>
+      </section>
+
+      <sc-if value="{{hasDone}}" hint-placeholder-val="{{ true }}">
+        <section aria-label="已完成" style="display: flex; flex-direction: column">
+          <button onClick="{{toggleDone}}" aria-expanded="{{showDone}}" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 6px; border: 0; background: transparent; color: #5E6670; font-size: 13px; cursor: pointer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{chevronStyle}}"><path d="m6 9 6 6 6-6"></path></svg>
+            已完成 {{doneCount}}
+          </button>
+          <sc-if value="{{showDone}}" hint-placeholder-val="{{ true }}">
+            <sc-for list="{{done}}" as="t" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 6px; padding: 2px 6px 2px 26px">
+                <button aria-label="取消完成：{{t.title}}" onClick="{{t.toggle}}" style="width: 40px; height: 40px; flex: none; border: 0; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer">
+                  <span style="width: 20px; height: 20px; border-radius: 50%; background: #3A5CCC; display: flex; align-items: center; justify-content: center">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+                  </span>
+                </button>
+                <span style="flex: 1; min-width: 0; font-size: 15px; color: #6B7280; text-decoration: line-through">{{t.title}}</span>
+                <span style="font-size: 12px; color: #6B7280">{{t.doneAt}}</span>
+              </div>
+            </sc-for>
+          </sc-if>
+        </section>
+      </sc-if>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      draft: '',
+      toast: '',
+      legacyOpen: true,
+      showDone: true,
+      nextId: 100,
+      tasks: [
+        { id: 1, title: '回复张经理关于报价的邮件', star: true, time: '10:00' },
+        { id: 2, title: '交 10 月报销单', sub: '1/3' },
+        { id: 3, title: '部门周会', time: '14:00', repeat: '每周三' },
+        { id: 4, title: '给物业打电话问停车位', time: '15:00' },
+        { id: 5, title: '订周五去上海的高铁票', tag: '出差' },
+        { id: 6, title: '取快递（驿站）' },
+        { id: 7, title: '整理桌面文件', done: true, doneAt: '09:12' },
+        { id: 8, title: '回复小李的微信', done: true, doneAt: '09:30' },
+        { id: 9, title: '打印合同两份', done: true, doneAt: '09:48' }
+      ]
+    };
+  }
+
+  parse(text) {
+    let s = text;
+    const out = { chips: [], date: '', time: '', star: false, tag: '' };
+    const d = s.match(/(下周[一二三四五六日天]|周[一二三四五六日天]|今天|明天|后天)/);
+    if (d) { out.date = d[1]; s = s.replace(d[0], ''); }
+    const t = s.match(/(上午|下午|晚上|中午)?\s*(\d{1,2})\s*(?:点|:|：)\s*(半|\d{2})?/);
+    if (t) {
+      let h = parseInt(t[2], 10);
+      if ((t[1] === '下午' || t[1] === '晚上') && h < 12) h += 12;
+      const m = t[3] === '半' ? '30' : (t[3] || '00');
+      out.time = (h < 10 ? '0' + h : '' + h) + ':' + m;
+      s = s.replace(t[0], '');
+    }
+    if (/[!！]/.test(s)) { out.star = true; s = s.replace(/[!！]/g, ''); }
+    const g = s.match(/#(\S+)/);
+    if (g) { out.tag = g[1]; s = s.replace(g[0], ''); }
+    out.title = s.replace(/\s+/g, ' ').trim();
+    if (out.date) out.chips.push({ label: out.date });
+    if (out.time) out.chips.push({ label: out.time });
+    if (out.star) out.chips.push({ label: '重要' });
+    if (out.tag) out.chips.push({ label: '#' + out.tag });
+    out.target = out.date && out.date !== '今天' ? out.date : '今天';
+    return out;
+  }
+
+  add() {
+    const p = this.parse(this.state.draft);
+    if (!p.title) return;
+    if (p.target !== '今天') {
+      this.setState({ draft: '', toast: '已加入「' + p.target + '」，到那天会出现在今天' });
+      return;
+    }
+    const task = { id: this.state.nextId, title: p.title, time: p.time, star: p.star, tag: p.tag };
+    this.setState({ draft: '', toast: '', nextId: this.state.nextId + 1, tasks: [task].concat(this.state.tasks) });
+  }
+
+  toggle(id) {
+    const now = new Date();
+    const hm = (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+    this.setState({ tasks: this.state.tasks.map((t) => t.id === id ? Object.assign({}, t, { done: !t.done, doneAt: hm }) : t) });
+  }
+
+  renderVals() {
+    const tasks = this.state.tasks;
+    const decorate = (t) => Object.assign({}, t, {
+      hasMeta: !!(t.time || t.sub || t.repeat || t.tag),
+      toggle: () => this.toggle(t.id)
+    });
+    const active = tasks.filter((t) => !t.done).map(decorate);
+    const done = tasks.filter((t) => t.done).map(decorate);
+    const total = tasks.length;
+    const pct = total ? Math.round(done.length / total * 100) : 0;
+    const p = this.parse(this.state.draft);
+    return {
+      draft: this.state.draft,
+      onDraft: (e) => this.setState({ draft: e.target.value, toast: '' }),
+      onKey: (e) => { if (e.key === 'Enter') this.add(); },
+      hasDraft: this.state.draft.trim().length > 0 && p.chips.length > 0,
+      chips: p.chips,
+      target: p.target,
+      toast: this.state.toast,
+      hasToast: !!this.state.toast,
+      legacyOpen: this.state.legacyOpen,
+      moveLegacy: () => this.setState({
+        legacyOpen: false,
+        nextId: this.state.nextId + 2,
+        tasks: [
+          { id: this.state.nextId, title: '预约体检', tag: '遗留' },
+          { id: this.state.nextId + 1, title: '更新简历里的项目经历', tag: '遗留' }
+        ].concat(tasks)
+      }),
+      active: active,
+      done: done,
+      activeCount: active.length,
+      doneCount: done.length,
+      totalCount: total,
+      pct: pct,
+      barStyle: 'height: 100%; background: #3A5CCC; border-radius: 2px; transition: width .3s ease; width: ' + pct + '%',
+      allClear: active.length === 0,
+      hasDone: done.length > 0,
+      showDone: this.state.showDone,
+      toggleDone: () => this.setState({ showDone: !this.state.showDone }),
+      chevronStyle: this.state.showDone ? '' : 'transform: rotate(-90deg)'
+    };
+  }
+}
+</script>
+</body>
+</html>
