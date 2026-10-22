@@ -28,10 +28,26 @@ export interface Task {
   deletedAt: string | null
 }
 
+/** 每天一条：晚间收尾写下的一句话 */
+export interface Day {
+  /** YYYY-MM-DD */
+  date: string
+  note: string
+  /** 点「结束今天」的时间，未结束为 null */
+  closedAt: string | null
+  updatedAt: string
+}
+
 export const db = new Dexie('mylog') as Dexie & {
   tasks: EntityTable<Task, 'id'>
+  days: EntityTable<Day, 'date'>
 }
 
 db.version(1).stores({
   tasks: 'id, date, done, updatedAt',
+})
+
+db.version(2).stores({
+  tasks: 'id, date, done, updatedAt',
+  days: 'date, updatedAt',
 })

@@ -90,3 +90,9 @@ export const GripIcon = (p: P) => (
     <circle cx="15" cy="18" r="1.6" />
   </svg>
 )
+export const BookIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z" />
+    <path d="M20 17v4H6.5A2.5 2.5 0 0 1 4 19.5" />
+  </Svg>
+)

@@ -15,6 +15,8 @@ export interface ViewProps {
   onToggle: (t: Task) => void
   onOpen: (t: Task) => void
   onNotice: (text: string, undo?: () => void) => void
+  onPlan: () => void
+  onWrapUp: () => void
 }
 
 export function selectToday(tasks: Task[], today: string) {
@@ -51,6 +53,14 @@ export function TodayView(p: ViewProps) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <h1>今天</h1>
           <span className="subtle">{longLabel(p.today)}</span>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn ghost" onClick={p.onPlan}>
+            规划今天
+          </button>
+          <button className="btn" onClick={p.onWrapUp}>
+            结束今天
+          </button>
         </div>
       </header>
 

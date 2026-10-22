@@ -1,4 +1,4 @@
-import { db, type Subtask, type Task } from './db'
+import { db, type Day, type Subtask, type Task } from './db'
 import { todayKey } from './lib/date'
 
 const uid = () => crypto.randomUUID()
@@ -78,4 +78,28 @@ export async function setSubtasks(id: string, subtasks: Subtask[]): Promise<void
 
 export function newSubtask(title: string): Subtask {
   return { id: uid(), title, done: false }
+}
+
+export async function saveDay(date: string, patch: Partial<Omit<Day, 'date'>>): Promise<void> {
+  const prev = await db.days.get(date)
+  await db.days.put({ date, note: '', closedAt: null, ...prev, ...patch, updatedAt: now() })
+}
+
+// 早间规划每台设备每天只自动弹一次，属于本机偏好，存 localStorage 即可
+const PLANNED_KEY = 'mylog.plannedOn'
+
+export function plannedToday(today: string): boolean {
+  try {
+    return localStorage.getItem(PLANNED_KEY) === today
+  } catch {
+    return false
+  }
+}
+
+export function markPlanned(today: string): void {
+  try {
+    localStorage.setItem(PLANNED_KEY, today)
+  } catch {
+    // 隐私模式等情况下写不进去，最多就是明天再弹一次
+  }
 }

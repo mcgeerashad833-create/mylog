@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Task } from './db'
 import { todayKey } from './lib/date'
-import { isAlive, restoreTask, toggleDone } from './store'
+import { isAlive, plannedToday, restoreTask, toggleDone } from './store'
 import { DetailDrawer } from './components/DetailDrawer'
-import { CalendarIcon, InboxIcon, SunIcon } from './components/Icons'
+import { BookIcon, CalendarIcon, InboxIcon, SunIcon } from './components/Icons'
 import { InboxView, LaterView, TodayView, selectToday, type ViewProps } from './views/views'
+import { LogView } from './views/LogView'
+import { PlanDialog, planQueue } from './views/PlanDialog'
 
-type View = 'today' | 'inbox' | 'later'
+type View = 'today' | 'inbox' | 'later' | 'log'
 
 interface Toast {
   text: string
@@ -26,12 +28,20 @@ function useToday(): string {
 
 export function App() {
   const today = useToday()
-  const tasks = useLiveQuery(() => db.tasks.toArray().then((all) => all.filter(isAlive)), []) ?? []
+  const loaded = useLiveQuery(() => db.tasks.toArray().then((all) => all.filter(isAlive)), [])
+  const tasks = loaded ?? []
+  const [planning, setPlanning] = useState(false)
   const [view, setView] = useState<View>('today')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const selected = tasks.find((t) => t.id === selectedId) ?? null
+
+  // 每天第一次打开时，有遗留或收集箱里有事，就弹出早间规划
+  useEffect(() => {
+    if (loaded && !plannedToday(today) && planQueue(loaded, today).length > 0) setPlanning(true)
+    // 只在数据首次加载完成和日期变化时检查
+  }, [loaded === undefined, today])
 
   useEffect(() => {
     if (!toast) return
@@ -63,6 +73,7 @@ export function App() {
     today: active.length + overdue.length,
     inbox: tasks.filter((t) => !t.done && t.date === null).length,
     later: tasks.filter((t) => !t.done && t.date !== null && t.date > today).length,
+    log: 0,
   }
 
   const props: ViewProps = {
@@ -73,12 +84,15 @@ export function App() {
     onToggle,
     onOpen: (t) => setSelectedId(t.id === selectedId ? null : t.id),
     onNotice: notice,
+    onPlan: () => setPlanning(true),
+    onWrapUp: () => setView('log'),
   }
 
   const nav: { id: View; label: string; icon: typeof SunIcon }[] = [
     { id: 'today', label: '今天', icon: SunIcon },
     { id: 'inbox', label: '收集箱', icon: InboxIcon },
     { id: 'later', label: '以后', icon: CalendarIcon },
+    { id: 'log', label: '日志', icon: BookIcon },
   ]
 
   return (
@@ -104,6 +118,7 @@ export function App() {
         {view === 'today' && <TodayView {...props} />}
         {view === 'inbox' && <InboxView {...props} />}
         {view === 'later' && <LaterView {...props} />}
+        {view === 'log' && <LogView tasks={tasks} today={today} onOpen={props.onOpen} onNotice={notice} />}
       </main>
 
       {selected && (
@@ -117,6 +132,8 @@ export function App() {
           }}
         />
       )}
+
+      {planning && <PlanDialog tasks={tasks} today={today} onClose={() => setPlanning(false)} />}
 
       {toast && (
         <div className="toast" role="status">
