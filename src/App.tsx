@@ -11,6 +11,7 @@ import { InboxView, LaterView, TodayView, selectToday, type ViewProps } from './
 import { LogView } from './views/LogView'
 import { SearchView } from './views/SearchView'
 import { SettingsView, syncLabel } from './views/SettingsView'
+import { LoginScreen } from './views/LoginScreen'
 import { startAutoSync, useSyncState } from './sync'
 import { useReminders } from './reminders'
 import { onNotificationClick, showNotification } from './pwa'
@@ -76,7 +77,14 @@ function useMeetingReminders(meetings: Meeting[], now: Date, show: (t: Toast) =>
   }, [meetings, now, show, open])
 }
 
+/** 必须登录才能用：没登录时只显示登录页 */
 export function App() {
+  const sync = useSyncState()
+  // 换账号时整个界面重新挂载，不留上一个账号的状态
+  return sync.email ? <MainApp key={sync.email} /> : <LoginScreen />
+}
+
+function MainApp() {
   const today = useToday()
   const now = useNow(15_000)
   const loaded = useLiveQuery(() => db.tasks.toArray().then((all) => all.filter(isAlive)), [])
@@ -262,7 +270,7 @@ export function App() {
               aria-hidden="true"
             />
           )}
-          {sync.email ? syncLabel(sync) : '数据只在本机 · 登录以同步'}
+          {syncLabel(sync)}
         </button>
       </nav>
 

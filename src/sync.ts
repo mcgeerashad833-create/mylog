@@ -2,7 +2,8 @@ import { useSyncExternalStore } from 'react'
 import { db, type Day, type Meeting, type OutboxEntry, type Task } from './db'
 
 // 登录信息和同步游标是本机状态，放 localStorage
-const K = { token: 'mylog.token', email: 'mylog.email', cursor: 'mylog.cursor' }
+// owner：本机缓存的是哪个账号的数据。同一个浏览器换账号登录时，要先清掉上一个账号的缓存
+const K = { token: 'mylog.token', email: 'mylog.email', cursor: 'mylog.cursor', owner: 'mylog.owner' }
 
 function read(key: string): string | null {
   try {
@@ -91,19 +92,34 @@ function deviceName(): string {
   return `${os} · ${browser}`
 }
 
-/** mode：login 登录已有账户，register 注册新账户 */
-export async function signIn(mode: 'login' | 'register', email: string, password: string): Promise<void> {
-  const res = await api<{ token: string; email: string }>(`/auth/${mode}`, { body: { email, password, device: deviceName() } })
+// 升级前就登录着的设备没有 owner 记录，补上
+if (read(K.token) && read(K.email) && !read(K.owner)) write(K.owner, read(K.email))
+
+async function clearLocal(): Promise<void> {
+  await db.transaction('rw', db.tasks, db.days, db.meetings, db.outbox, async () => {
+    await Promise.all([db.tasks.clear(), db.days.clear(), db.meetings.clear(), db.outbox.clear()])
+  })
+}
+
+/** 用管理员在服务器上建好的账号登录；数据以服务器为准，本机只是缓存 */
+export async function signIn(email: string, password: string): Promise<void> {
+  const res = await api<{ token: string; email: string }>('/auth/login', { body: { email, password, device: deviceName() } })
+  const owner = read(K.owner)
+  // 本机缓存的是别的账号的数据（比如对方登录过期后没退出），先清掉，免得混进这个账号
+  if (owner && owner !== res.email) await clearLocal()
   write(K.token, res.token)
   write(K.email, res.email)
   write(K.cursor, '0')
-  // 登录前在本机记下的事，全部推一次到账户里
-  const [tasks, days, meetings] = await Promise.all([db.tasks.toArray(), db.days.toArray(), db.meetings.toArray()])
-  await db.outbox.bulkPut([
-    ...tasks.map((t): OutboxEntry => ({ key: `tasks:${t.id}`, table: 'tasks', id: t.id, updatedAt: t.updatedAt })),
-    ...days.map((d): OutboxEntry => ({ key: `days:${d.date}`, table: 'days', id: d.date, updatedAt: d.updatedAt })),
-    ...meetings.map((m): OutboxEntry => ({ key: `meetings:${m.id}`, table: 'meetings', id: m.id, updatedAt: m.updatedAt })),
-  ])
+  write(K.owner, res.email)
+  if (!owner) {
+    // 旧版本「不登录、只存本机」时记下的事：第一次登录时一起传到账号里
+    const [tasks, days, meetings] = await Promise.all([db.tasks.toArray(), db.days.toArray(), db.meetings.toArray()])
+    await db.outbox.bulkPut([
+      ...tasks.map((t): OutboxEntry => ({ key: `tasks:${t.id}`, table: 'tasks', id: t.id, updatedAt: t.updatedAt })),
+      ...days.map((d): OutboxEntry => ({ key: `days:${d.date}`, table: 'days', id: d.date, updatedAt: d.updatedAt })),
+      ...meetings.map((m): OutboxEntry => ({ key: `meetings:${m.id}`, table: 'meetings', id: m.id, updatedAt: m.updatedAt })),
+    ])
+  }
   set({ email: res.email, status: 'idle', error: null })
   await syncNow()
 }
@@ -121,9 +137,8 @@ export async function logout(): Promise<void> {
   if ((await db.outbox.count()) > 0) throw new ApiError(0, '还有改动没同步上去，请联网后再退出')
   await api('/auth/logout', { body: {} }).catch(() => undefined)
   signedOut()
-  await db.transaction('rw', db.tasks, db.days, db.meetings, db.outbox, async () => {
-    await Promise.all([db.tasks.clear(), db.days.clear(), db.meetings.clear(), db.outbox.clear()])
-  })
+  await clearLocal()
+  write(K.owner, null)
 }
 
 // ---- 同步 ----

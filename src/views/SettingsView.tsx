@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, logout, signIn, syncNow, useSyncState, type SyncState } from '../sync'
+import { api, logout, syncNow, useSyncState, type SyncState } from '../sync'
 import { ensureNotifyPermission, setRemindersEnabled, useReminderSettings } from '../reminders'
 import { promptInstall, useInstallState } from '../pwa'
 
@@ -38,99 +38,11 @@ export function SettingsView() {
         <h2 id="s-account" className="group-title" style={{ fontSize: 16 }}>
           账户与同步
         </h2>
-        {sync.email ? <Account sync={sync} /> : <Login />}
+        {sync.email && <Account sync={sync} />}
       </section>
       <ReminderSettings />
       <InstallSettings />
     </div>
-  )
-}
-
-function Login() {
-  const sync = useSyncState()
-  const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const register = mode === 'register'
-
-  async function submit() {
-    setBusy(true)
-    setError('')
-    try {
-      await signIn(mode, email, password)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <form
-      className="login"
-      onSubmit={(e) => {
-        e.preventDefault()
-        void submit()
-      }}
-    >
-      {sync.error && (
-        <p role="alert" style={{ margin: 0, color: 'var(--star)', fontSize: 13 }}>
-          {sync.error}
-        </p>
-      )}
-      <p className="subtle" style={{ margin: 0 }}>
-        登录后，电脑和手机上的清单会自动同步。本机已有的事会一起上传到账户里。
-      </p>
-      <div className="form-field">
-        <label htmlFor="login-email">邮箱</label>
-        <input
-          id="login-email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-        />
-      </div>
-      <div className="form-field">
-        <label htmlFor="login-password">密码</label>
-        <input
-          id="login-password"
-          type="password"
-          autoComplete={register ? 'new-password' : 'current-password'}
-          required
-          minLength={register ? 8 : undefined}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder={register ? '至少 8 位' : ''}
-        />
-      </div>
-      {error && (
-        <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: 13 }}>
-          {error}
-        </p>
-      )}
-      <button type="submit" className="btn primary big" disabled={busy}>
-        {busy ? '请稍候…' : register ? '注册并登录' : '登录'}
-      </button>
-      <span className="tiny">
-        {register ? '已经有账户了？' : '还没有账户？'}
-        <button
-          type="button"
-          className="link-btn"
-          style={{ padding: 0, fontSize: 12 }}
-          onClick={() => {
-            setMode(register ? 'login' : 'register')
-            setError('')
-          }}
-        >
-          {register ? '去登录' : '注册一个'}
-        </button>
-      </span>
-    </form>
   )
 }
 
@@ -191,7 +103,7 @@ function Account({ sync }: { sync: SyncState }) {
         <button
           className="btn"
           onClick={() => {
-            if (!confirm('退出后会清除本机上的清单，云端数据保留，重新登录即可恢复。确定退出吗？')) return
+            if (!confirm('退出后本机上的缓存会清掉，数据都在服务器上，重新登录即可恢复。确定退出吗？')) return
             setError('')
             logout().catch((e) => setError(e instanceof Error ? e.message : String(e)))
           }}

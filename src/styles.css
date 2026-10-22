@@ -477,3 +477,12 @@ a.btn.primary { color: #fff; }
 .data-table table { margin-top: 8px; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .data-table th, .data-table td { text-align: left; padding: 4px 16px 4px 0; border-bottom: 1px solid var(--line-soft); }
 .data-table th { font-weight: 500; color: var(--text-2); }
+
+/* 登录页 */
+.login-screen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: var(--bg-soft);
+}
+.login-card {
+  width: 100%; max-width: 380px; background: #fff; border: 1px solid #e6e6e3; border-radius: 16px; padding: 32px;
+  box-shadow: 0 12px 40px rgba(16, 24, 40, 0.06);
+}

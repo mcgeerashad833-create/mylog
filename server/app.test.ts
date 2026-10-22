@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from './app.ts'
 import type { RowDataPacket } from 'mysql2/promise'
 import { createPool, migrate, type Pool } from './db.ts'
+import { createUser, deleteUser, listUsers, randomPassword, resetPassword } from './users.ts'
 
 // 需要一个空的测试库；连不上就跳过（例如没有装 MySQL 的环境）
 const URL = process.env.TEST_DATABASE_URL ?? 'mysql://mylog:mylog_dev@localhost:3306/mylog_test'
@@ -29,10 +30,10 @@ afterAll(async () => {
 })
 
 async function login(email: string, device = 'test') {
-  const res = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password: 'secret-123', device } })
-  if (res.statusCode === 200) return res.json().token as string
-  const again = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password: 'secret-123', device } })
-  return again.json().token as string
+  // 账号只能在服务器上创建：没有就先建一个
+  await createUser(pool, email, 'secret-123').catch(() => undefined)
+  const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password: 'secret-123', device } })
+  return res.json().token as string
 }
 
 function sync(token: string, payload: object) {
@@ -44,27 +45,22 @@ function sync(token: string, payload: object) {
 const task = (id: string, title: string, updatedAt: string) => ({ id, title, updatedAt, deletedAt: null })
 
 describe.skipIf(!available)('服务端', () => {
-  it('邮箱密码注册与登录', async () => {
+  it('应用里不能注册，只能登录管理员建好的账号', async () => {
     const post = (url: string, payload: object) => app.inject({ method: 'POST', url, payload })
+    expect((await post('/api/auth/register', { email: 'a@example.com', password: 'secret-123' })).statusCode).toBe(404)
 
-    expect((await post('/api/auth/register', { email: 'not-an-email', password: 'secret-123' })).statusCode).toBe(400)
-    expect((await post('/api/auth/register', { email: 'a@example.com', password: 'short' })).statusCode).toBe(400)
-
-    const reg = await post('/api/auth/register', { email: 'A@Example.com ', password: 'secret-123', device: 'MacBook' })
-    expect(reg.statusCode).toBe(200)
-    expect(reg.json().email).toBe('a@example.com')
-
-    const dup = await post('/api/auth/register', { email: 'a@example.com', password: 'another-123' })
-    expect(dup.statusCode).toBe(409)
-
+    await createUser(pool, 'A@Example.com ', 'secret-123')
     const wrong = await post('/api/auth/login', { email: 'a@example.com', password: 'wrong-pass' })
     expect(wrong.statusCode).toBe(401)
     const nobody = await post('/api/auth/login', { email: 'nobody@example.com', password: 'secret-123' })
     expect(nobody.statusCode).toBe(401)
     expect(nobody.json().error).toBe(wrong.json().error)
+    expect((await post('/api/auth/login', { email: 'not-an-email', password: 'secret-123' })).statusCode).toBe(400)
 
-    const ok = await post('/api/auth/login', { email: 'a@example.com', password: 'secret-123', device: 'iPhone' })
+    await post('/api/auth/login', { email: 'a@example.com', password: 'secret-123', device: 'MacBook' })
+    const ok = await post('/api/auth/login', { email: ' A@example.com', password: 'secret-123', device: 'iPhone' })
     expect(ok.statusCode).toBe(200)
+    expect(ok.json().email).toBe('a@example.com')
 
     const me = await app.inject({ method: 'GET', url: '/api/me', headers: { authorization: `Bearer ${ok.json().token}` } })
     expect(me.json().email).toBe('a@example.com')
@@ -75,6 +71,42 @@ describe.skipIf(!available)('服务端', () => {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT password_hash FROM users WHERE email = ?', ['a@example.com'])
     expect(rows[0].password_hash).toMatch(/^scrypt\$/)
     expect(rows[0].password_hash).not.toContain('secret-123')
+  })
+
+  it('管理员命令：建账号、重置密码、列出、删除', async () => {
+    await expect(createUser(pool, 'admin1@example.com', 'short')).rejects.toThrow('密码需要')
+    await expect(createUser(pool, 'not-an-email', 'secret-123')).rejects.toThrow('邮箱格式不对')
+    await createUser(pool, 'admin1@example.com', 'secret-123')
+    await expect(createUser(pool, 'Admin1@example.com', 'secret-456')).rejects.toThrow('已经有账号')
+
+    // 重置密码：旧密码失效，所有设备退出
+    const token = await login('admin1@example.com')
+    await resetPassword(pool, 'admin1@example.com', 'brand-new-789')
+    const me = await app.inject({ method: 'GET', url: '/api/me', headers: { authorization: `Bearer ${token}` } })
+    expect(me.statusCode).toBe(401)
+    const loginWith = (password: string) =>
+      app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'admin1@example.com', password } })
+    expect((await loginWith('secret-123')).statusCode).toBe(401)
+    const fresh = await loginWith('brand-new-789')
+    expect(fresh.statusCode).toBe(200)
+    await expect(resetPassword(pool, 'nobody@example.com', 'secret-123')).rejects.toThrow('没有')
+
+    const users = await listUsers(pool)
+    expect(users.find((u) => u.email === 'admin1@example.com')).toMatchObject({ devices: 1 })
+
+    // 删除账号会连带删掉它的数据
+    await sync(fresh.json().token, { cursor: 0, tasks: [task('del-1', '要被删掉的事', '2026-10-22T01:00:00.000Z')] })
+    await deleteUser(pool, 'admin1@example.com')
+    const [left] = await pool.query<RowDataPacket[]>("SELECT COUNT(*) AS n FROM tasks WHERE id = 'del-1'")
+    expect(left[0].n).toBe(0)
+    expect((await listUsers(pool)).some((u) => u.email === 'admin1@example.com')).toBe(false)
+  })
+
+  it('自动生成的初始密码够长、不含容易看错的字符', () => {
+    const pw = randomPassword()
+    expect(pw).toHaveLength(12)
+    expect(pw).not.toMatch(/[0O1lI]/)
+    expect(randomPassword()).not.toBe(pw)
   })
 
   it('连续输错密码会被暂时锁住', async () => {
