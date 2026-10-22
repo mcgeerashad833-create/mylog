@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type Task } from './db'
+import { db, type Meeting, type Task } from './db'
 import { todayKey } from './lib/date'
+import { dueReminders, meetingStatus, startAt, timeRange, whereLabel } from './lib/meeting'
 import { isAlive, plannedToday, restoreTask, toggleDone } from './store'
+import { ensureSeries, updateMeeting } from './meetings'
 import { DetailDrawer } from './components/DetailDrawer'
-import { BookIcon, CalendarIcon, InboxIcon, SearchIcon, SunIcon } from './components/Icons'
+import { BookIcon, CalendarIcon, ChartIcon, InboxIcon, SearchIcon, SunIcon, TodoIcon, VideoIcon } from './components/Icons'
 import { InboxView, LaterView, TodayView, selectToday, type ViewProps } from './views/views'
 import { LogView } from './views/LogView'
 import { SearchView } from './views/SearchView'
@@ -12,12 +14,15 @@ import { SettingsView, syncLabel } from './views/SettingsView'
 import { startAutoSync, useSyncState } from './sync'
 import { useReminders } from './reminders'
 import { PlanDialog, planQueue } from './views/PlanDialog'
+import { ActionsView, MeetingsSection, StatsView, type MeetingProps, type MeetingRoute } from './views/meetings'
 
-type View = 'today' | 'inbox' | 'later' | 'log' | 'settings' | 'search'
+type View = 'today' | 'inbox' | 'later' | 'log' | 'settings' | 'search' | 'meetings' | 'actions' | 'stats'
 
 interface Toast {
   text: string
+  /** 按钮要做的事；没有 label 时按钮叫「撤销」 */
   undo?: () => void
+  label?: string
 }
 
 /** 跨过零点时自动切到新的一天 */
@@ -30,14 +35,67 @@ function useToday(): string {
   return today
 }
 
+/** 会议状态（几分钟后开始、进行中）要跟着时间走 */
+function useNow(ms: number): Date {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), ms)
+    return () => clearInterval(id)
+  }, [ms])
+  return now
+}
+
+function canNotify(): boolean {
+  return typeof Notification !== 'undefined'
+}
+
+/** 会前提醒、会后还没整理纪要的提醒：系统通知 + 页面内提示 */
+function useMeetingReminders(meetings: Meeting[], now: Date, show: (t: Toast) => void, open: (r: MeetingRoute) => void) {
+  // 写库是异步的，写完之前可能又渲染一次，用它防止同一条提醒发两遍
+  const fired = useRef(new Set<string>())
+  useEffect(() => {
+    const due = dueReminders(meetings, now)
+    // 改了会议时间要重新提醒，所以时间也算进去
+    const key = (kind: string, m: Meeting) => `${kind}:${m.id}:${m.date}:${m.start}`
+    const before = due.before.filter((m) => !fired.current.has(key('b', m)))
+    const after = due.after.filter((m) => !fired.current.has(key('a', m)))
+    before.forEach((m) => fired.current.add(key('b', m)))
+    after.forEach((m) => fired.current.add(key('a', m)))
+    const ts = new Date().toISOString()
+    const notify = (title: string, body: string, route: MeetingRoute) => {
+      if (canNotify() && Notification.permission === 'granted') {
+        const n = new Notification(title, { body, tag: title })
+        n.onclick = () => {
+          window.focus()
+          open(route)
+        }
+      }
+    }
+    for (const m of before) {
+      void updateMeeting(m.id, { remindedAt: ts })
+      const mins = Math.max(1, Math.ceil((startAt(m).getTime() - now.getTime()) / 60_000))
+      notify(`${m.title} · ${mins} 分钟后开始`, `${timeRange(m)} · ${whereLabel(m)}`, { page: 'detail', id: m.id })
+      show({ text: `「${m.title}」${mins} 分钟后开始`, label: '查看', undo: () => open({ page: 'detail', id: m.id }) })
+    }
+    for (const m of after) {
+      void updateMeeting(m.id, { nudgedAt: ts })
+      notify(`「${m.title}」的纪要还没整理`, '花几分钟整理一下，会上领的活才会进「今天」。', { page: 'minutes', id: m.id })
+      show({ text: `「${m.title}」的纪要还没整理`, label: '去整理', undo: () => open({ page: 'minutes', id: m.id }) })
+    }
+  }, [meetings, now, show, open])
+}
+
 export function App() {
   const today = useToday()
+  const now = useNow(15_000)
   const loaded = useLiveQuery(() => db.tasks.toArray().then((all) => all.filter(isAlive)), [])
   const tasks = loaded ?? []
+  const meetings = useLiveQuery(() => db.meetings.toArray().then((all) => all.filter((m) => !m.deletedAt)), []) ?? []
   const [planning, setPlanning] = useState(false)
   const [query, setQuery] = useState('')
   const [logDate, setLogDate] = useState<string | undefined>()
   const [view, setView] = useState<View>('today')
+  const [route, setRoute] = useState<MeetingRoute>({ page: 'list' })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -78,6 +136,17 @@ export function App() {
   }, [selectedId])
 
   const notice = (text: string, undo?: () => void) => setToast({ text, undo })
+  const openMeeting = useCallback((r: MeetingRoute) => {
+    setView('meetings')
+    setRoute(r)
+    window.scrollTo(0, 0)
+  }, [])
+  useMeetingReminders(meetings, now, setToast, openMeeting)
+
+  // 例会：打开时和跨天时补建下一次
+  useEffect(() => {
+    void ensureSeries(today)
+  }, [today])
 
   useReminders(
     tasks,
@@ -106,6 +175,9 @@ export function App() {
     log: 0,
     settings: 0,
     search: 0,
+    meetings: meetings.filter((m) => m.date === today && ['upcoming', 'ongoing', 'recording'].includes(meetingStatus(m, now))).length,
+    actions: tasks.filter((t) => t.meetingId && !t.done).length,
+    stats: 0,
   }
 
   const props: ViewProps = {
@@ -118,6 +190,19 @@ export function App() {
     onNotice: notice,
     onPlan: () => setPlanning(true),
     onWrapUp: () => setView('log'),
+    onInvite: (text) => openMeeting({ page: 'new', invite: text }),
+  }
+
+  const meetingProps: MeetingProps = {
+    meetings,
+    tasks,
+    today,
+    now,
+    selectedId,
+    go: openMeeting,
+    onNotice: notice,
+    onToggle,
+    onOpen: props.onOpen,
   }
 
   const nav: { id: View; label: string; icon: typeof SunIcon }[] = [
@@ -126,6 +211,27 @@ export function App() {
     { id: 'later', label: '以后', icon: CalendarIcon },
     { id: 'log', label: '日志', icon: BookIcon },
   ]
+  const meetingNav: { id: View; label: string; icon: typeof SunIcon }[] = [
+    { id: 'meetings', label: '会议日程', icon: VideoIcon },
+    { id: 'actions', label: '会议待办', icon: TodoIcon },
+    { id: 'stats', label: '会议统计', icon: ChartIcon },
+  ]
+  const navButton = ({ id, label, icon: Icon }: (typeof nav)[number]) => (
+    <button
+      key={id}
+      className="nav-item"
+      aria-current={view === id ? 'page' : undefined}
+      onClick={() => {
+        setLogDate(undefined)
+        setView(id)
+        if (id === 'meetings') setRoute({ page: 'list' })
+      }}
+    >
+      <Icon color={view === id ? 'var(--accent)' : 'var(--text-2)'} />
+      {label}
+      {counts[id] > 0 && <span className="count">{counts[id]}</span>}
+    </button>
+  )
 
   return (
     <div className="app">
@@ -142,21 +248,9 @@ export function App() {
             <SearchIcon />
           </button>
         </div>
-        {nav.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            className="nav-item"
-            aria-current={view === id ? 'page' : undefined}
-            onClick={() => {
-              setLogDate(undefined)
-              setView(id)
-            }}
-          >
-            <Icon color={view === id ? 'var(--accent)' : 'var(--text-2)'} />
-            {label}
-            {counts[id] > 0 && <span className="count">{counts[id]}</span>}
-          </button>
-        ))}
+        {nav.map(navButton)}
+        <div className="nav-group">会议</div>
+        {meetingNav.map(navButton)}
         <button
           className="sidebar-foot"
           aria-current={view === 'settings' ? 'page' : undefined}
@@ -193,6 +287,9 @@ export function App() {
           />
         )}
         {view === 'log' && <LogView key={logDate ?? 'today'} initialDate={logDate} tasks={tasks} today={today} onOpen={props.onOpen} onNotice={notice} />}
+        {view === 'meetings' && <MeetingsSection {...meetingProps} route={route} onOpenActions={() => setView('actions')} />}
+        {view === 'actions' && <ActionsView {...meetingProps} />}
+        {view === 'stats' && <StatsView {...meetingProps} />}
       </main>
 
       {selected && (
@@ -219,7 +316,7 @@ export function App() {
                 setToast(null)
               }}
             >
-              撤销
+              {toast.label ?? '撤销'}
             </button>
           )}
         </div>

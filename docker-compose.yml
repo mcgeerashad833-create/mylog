@@ -1,36 +1,18 @@
-# 一台服务器上跑 MyLog + MySQL。用法见 docs/02-部署.md
+# 云服务器上只跑 MyLog，数据存在云数据库（阿里云 RDS、腾讯云 MySQL 等）。用法见 docs/02-部署.md
 services:
-  db:
-    image: mysql:8.0
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 里设置 MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: mylog
-      MYSQL_USER: mylog
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 里设置 MYSQL_PASSWORD}
-      TZ: Asia/Shanghai
-    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
-    volumes:
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
   app:
     build: .
     image: mylog:latest
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
-      DATABASE_URL: mysql://mylog:${MYSQL_PASSWORD}@db:3306/mylog
+      # 在 .env 里填写，例如 mysql://mylog:密码@数据库内网地址:3306/mylog
+      DATABASE_URL: ${DATABASE_URL:?请在 .env 里设置 DATABASE_URL（云数据库连接串）}
       TRUST_PROXY: "1"
+      TZ: Asia/Shanghai
+      # 走公网连接云数据库时：把云厂商的 CA 证书放到 deploy/db-ca.pem，再取消下面三行的注释
+      # DATABASE_CA_FILE: /app/db-ca.pem
+    # volumes:
+    #   - ./deploy/db-ca.pem:/app/db-ca.pem:ro
     # 只对本机开放，由 Nginx 负责 HTTPS 和对外
     ports:
       - "127.0.0.1:8787:8787"
-
-volumes:
-  mysql-data:

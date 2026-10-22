@@ -17,6 +17,8 @@ export interface ViewProps {
   onNotice: (text: string, undo?: () => void) => void
   onPlan: () => void
   onWrapUp: () => void
+  /** 在快速添加里粘贴了腾讯会议邀请 */
+  onInvite: (text: string) => void
 }
 
 export function selectToday(tasks: Task[], today: string) {
@@ -83,6 +85,7 @@ export function TodayView(p: ViewProps) {
         defaultDate={p.today}
         inputRef={p.inputRef}
         onNotice={p.onNotice}
+        onInvite={p.onInvite}
         placeholder="添加一件事，回车保存。试试：明天下午3点 给物业打电话 !"
       />
 
@@ -201,6 +204,7 @@ export function InboxView(p: ViewProps) {
         defaultDate={null}
         inputRef={p.inputRef}
         onNotice={p.onNotice}
+        onInvite={p.onInvite}
         placeholder="想到什么先记下，回车保存"
       />
       {items.length > 0 ? (
@@ -273,6 +277,7 @@ export function LaterView(p: ViewProps) {
         defaultDate={addDays(p.today, 1)}
         inputRef={p.inputRef}
         onNotice={p.onNotice}
+        onInvite={p.onInvite}
         placeholder="添加以后要做的事，不写日期默认明天。例如：周五 交周报"
       />
       {groups.length === 0 && (

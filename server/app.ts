@@ -11,6 +11,8 @@ const LOGIN_MAX_FAILURES = 10
 const LOGIN_WINDOW_MS = 15 * 60 * 1000
 const MAX_RECORDS = 5000
 const MAX_RECORD_BYTES = 64 * 1024
+/** 一场会议带着全部记录，允许大一些 */
+const MAX_MEETING_BYTES = 512 * 1024
 
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/
 const ID_RE = /^[\w-]{1,64}$/
@@ -195,21 +197,21 @@ export function buildApp({ pool, staticDir, logger = false, trustProxy = false }
 
   // ---- 同步 ----
 
-  function checkRecords(list: unknown, key: 'id' | 'date'): Rec[] {
+  function checkRecords(list: unknown, key: 'id' | 'date', maxBytes = MAX_RECORD_BYTES): Rec[] {
     if (list === undefined) return []
     if (!Array.isArray(list) || list.length > MAX_RECORDS) throw new HttpError(400, '同步数据格式不对')
     for (const r of list) {
       const k = r?.[key]
       if (typeof k !== 'string' || !(key === 'id' ? ID_RE : DATE_RE).test(k)) throw new HttpError(400, '同步数据格式不对')
       if (typeof r.updatedAt !== 'string' || !ISO_RE.test(r.updatedAt)) throw new HttpError(400, '同步数据格式不对')
-      if (JSON.stringify(r).length > MAX_RECORD_BYTES) throw new HttpError(400, '单条记录太大')
+      if (JSON.stringify(r).length > maxBytes) throw new HttpError(400, '单条记录太大')
     }
     return list as Rec[]
   }
 
   /** 后写者胜：只有比服务器上更新的记录才写入，并分配新的 seq */
-  async function upsert(conn: PoolConnection, table: 'tasks' | 'days', userId: number, recs: Rec[], seq: number) {
-    const key = table === 'tasks' ? 'id' : 'date'
+  async function upsert(conn: PoolConnection, table: 'tasks' | 'days' | 'meetings', userId: number, recs: Rec[], seq: number) {
+    const key = table === 'days' ? 'date' : 'id'
     for (const r of recs) {
       const [cur] = await conn.query<RowDataPacket[]>(
         `SELECT updated_at FROM ${table} WHERE user_id = ? AND ${key} = ?`,
@@ -228,10 +230,11 @@ export function buildApp({ pool, staticDir, logger = false, trustProxy = false }
 
   app.post('/api/sync', async (req) => {
     const { userId } = await auth(req)
-    const body = (req.body ?? {}) as { cursor?: unknown; tasks?: unknown; days?: unknown }
+    const body = (req.body ?? {}) as { cursor?: unknown; tasks?: unknown; days?: unknown; meetings?: unknown }
     const cursor = Number.isInteger(body.cursor) ? (body.cursor as number) : 0
     const tasks = checkRecords(body.tasks, 'id')
     const days = checkRecords(body.days, 'date')
+    const meetings = checkRecords(body.meetings, 'id', MAX_MEETING_BYTES)
 
     const conn = await pool.getConnection()
     try {
@@ -241,6 +244,7 @@ export function buildApp({ pool, staticDir, logger = false, trustProxy = false }
       let seq = Number(u[0].seq)
       seq = await upsert(conn, 'tasks', userId, tasks, seq)
       seq = await upsert(conn, 'days', userId, days, seq)
+      seq = await upsert(conn, 'meetings', userId, meetings, seq)
       await conn.query('UPDATE users SET seq = ? WHERE id = ?', [seq, userId])
       const [outTasks] = await conn.query<RowDataPacket[]>(
         'SELECT data FROM tasks WHERE user_id = ? AND seq > ? ORDER BY seq',
@@ -250,9 +254,18 @@ export function buildApp({ pool, staticDir, logger = false, trustProxy = false }
         'SELECT data FROM days WHERE user_id = ? AND seq > ? ORDER BY seq',
         [userId, cursor],
       )
+      const [outMeetings] = await conn.query<RowDataPacket[]>(
+        'SELECT data FROM meetings WHERE user_id = ? AND seq > ? ORDER BY seq',
+        [userId, cursor],
+      )
       await conn.commit()
       const parse = (d: unknown) => (typeof d === 'string' ? JSON.parse(d) : d)
-      return { cursor: seq, tasks: outTasks.map((r) => parse(r.data)), days: outDays.map((r) => parse(r.data)) }
+      return {
+        cursor: seq,
+        tasks: outTasks.map((r) => parse(r.data)),
+        days: outDays.map((r) => parse(r.data)),
+        meetings: outMeetings.map((r) => parse(r.data)),
+      }
     } catch (e) {
       await conn.rollback()
       throw e

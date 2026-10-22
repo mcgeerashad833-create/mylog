@@ -5,7 +5,7 @@ import type { Task } from '../db'
 import { relativeLabel } from '../lib/date'
 import { repeatLabel } from '../lib/repeat'
 import { highlight, snippet } from '../lib/search'
-import { CheckIcon, ClockIcon, GripIcon, ListIcon, StarIcon, CalendarIcon, RepeatIcon } from './Icons'
+import { CheckIcon, ClockIcon, GripIcon, ListIcon, StarIcon, CalendarIcon, RepeatIcon, VideoIcon } from './Icons'
 
 interface Props {
   task: Task
@@ -68,7 +68,8 @@ function RowView({
 }: Props & { rowRef?: (el: HTMLElement | null) => void; style?: CSSProperties; dragging?: boolean; grip?: ReactNode }) {
   const subDone = task.subtasks.filter((s) => s.done).length
   const late = !task.done && task.date !== null && task.date < today
-  const hasMeta = task.time || task.repeat || task.subtasks.length > 0 || task.tag || (showDate && task.date) || late
+  const hasMeta =
+    task.time || task.repeat || task.subtasks.length > 0 || task.tag || task.meetingId || (showDate && task.date) || late
   const cls = ['row', task.done && 'done', selected && 'selected', dragging && 'dragging'].filter(Boolean).join(' ')
 
   return (
@@ -117,6 +118,12 @@ function RowView({
               </span>
             )}
             {task.tag && <span>#{task.tag}</span>}
+            {task.meetingId && (
+              <span>
+                <VideoIcon size={13} />
+                会议待办
+              </span>
+            )}
           </span>
         )}
       </button>

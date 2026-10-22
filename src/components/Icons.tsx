@@ -116,3 +116,32 @@ export const SearchIcon = (p: P) => (
     <path d="m20 20-3.5-3.5" />
   </Svg>
 )
+export const VideoIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="m22 8-6 4 6 4V8z" />
+    <rect x="2" y="6" width="14" height="12" rx="2" />
+  </Svg>
+)
+export const PinIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" />
+    <circle cx="12" cy="10" r="2.5" />
+  </Svg>
+)
+export const CopyIcon = (p: P) => (
+  <Svg {...p}>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+  </Svg>
+)
+export const TodoIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="m9 11 3 3 8-8" />
+    <path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+  </Svg>
+)
+export const ChartIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 20h16M7 16v-5M12 16V6M17 16v-8" />
+  </Svg>
+)

@@ -1,9 +1,15 @@
+import { readFileSync } from 'node:fs'
 import mysql from 'mysql2/promise'
 
 export type Pool = mysql.Pool
 
-export function createPool(url = process.env.DATABASE_URL ?? 'mysql://mylog:mylog_dev@localhost:3306/mylog'): Pool {
-  return mysql.createPool({ uri: url, connectionLimit: 10, charset: 'utf8mb4', timezone: 'Z' })
+export function createPool(
+  url = process.env.DATABASE_URL ?? 'mysql://mylog:mylog_dev@localhost:3306/mylog',
+  caFile = process.env.DATABASE_CA_FILE,
+): Pool {
+  // 云数据库走公网时用 SSL，并用云厂商提供的 CA 证书校验对方身份
+  const ssl = caFile ? { ca: readFileSync(caFile, 'utf8'), rejectUnauthorized: true } : undefined
+  return mysql.createPool({ uri: url, connectionLimit: 10, charset: 'utf8mb4', timezone: 'Z', ...(ssl && { ssl }) })
 }
 
 const MIGRATIONS = [
@@ -46,6 +52,18 @@ const MIGRATIONS = [
     updated_at VARCHAR(30) NOT NULL,
     seq BIGINT UNSIGNED NOT NULL,
     PRIMARY KEY (user_id, date),
+    INDEX (user_id, seq),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // 会议（含会中记录、纪要、会前备注）也整条存，规则和任务一样
+  `CREATE TABLE IF NOT EXISTS meetings (
+    user_id BIGINT UNSIGNED NOT NULL,
+    id VARCHAR(64) NOT NULL,
+    data JSON NOT NULL,
+    updated_at VARCHAR(30) NOT NULL,
+    seq BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (user_id, id),
     INDEX (user_id, seq),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,

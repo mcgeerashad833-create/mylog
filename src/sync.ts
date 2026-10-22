@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { db, type Day, type OutboxEntry, type Task } from './db'
+import { db, type Day, type Meeting, type OutboxEntry, type Task } from './db'
 
 // 登录信息和同步游标是本机状态，放 localStorage
 const K = { token: 'mylog.token', email: 'mylog.email', cursor: 'mylog.cursor' }
@@ -97,10 +97,11 @@ export async function signIn(mode: 'login' | 'register', email: string, password
   write(K.email, res.email)
   write(K.cursor, '0')
   // 登录前在本机记下的事，全部推一次到账户里
-  const [tasks, days] = await Promise.all([db.tasks.toArray(), db.days.toArray()])
+  const [tasks, days, meetings] = await Promise.all([db.tasks.toArray(), db.days.toArray(), db.meetings.toArray()])
   await db.outbox.bulkPut([
     ...tasks.map((t): OutboxEntry => ({ key: `tasks:${t.id}`, table: 'tasks', id: t.id, updatedAt: t.updatedAt })),
     ...days.map((d): OutboxEntry => ({ key: `days:${d.date}`, table: 'days', id: d.date, updatedAt: d.updatedAt })),
+    ...meetings.map((m): OutboxEntry => ({ key: `meetings:${m.id}`, table: 'meetings', id: m.id, updatedAt: m.updatedAt })),
   ])
   set({ email: res.email, status: 'idle', error: null })
   await syncNow()
@@ -119,8 +120,8 @@ export async function logout(): Promise<void> {
   if ((await db.outbox.count()) > 0) throw new ApiError(0, '还有改动没同步上去，请联网后再退出')
   await api('/auth/logout', { body: {} }).catch(() => undefined)
   signedOut()
-  await db.transaction('rw', db.tasks, db.days, db.outbox, async () => {
-    await Promise.all([db.tasks.clear(), db.days.clear(), db.outbox.clear()])
+  await db.transaction('rw', db.tasks, db.days, db.meetings, db.outbox, async () => {
+    await Promise.all([db.tasks.clear(), db.days.clear(), db.meetings.clear(), db.outbox.clear()])
   })
 }
 
@@ -175,25 +176,60 @@ function normalizeTask(t: Partial<Task> & { id: string; updatedAt: string }): Ta
   }
 }
 
+/** 服务器上的会议可能来自旧版本，缺的字段补上默认值 */
+function normalizeMeeting(m: Partial<Meeting> & { id: string; updatedAt: string }): Meeting {
+  return {
+    title: '',
+    kind: 'online',
+    repeat: 'none',
+    seriesId: null,
+    date: m.updatedAt.slice(0, 10),
+    start: '09:00',
+    end: null,
+    location: null,
+    meetingNo: null,
+    password: null,
+    link: null,
+    remindBefore: 0,
+    notes: [],
+    prep: [],
+    startedAt: null,
+    endedAt: null,
+    summarizedAt: null,
+    remindedAt: null,
+    nudgedAt: null,
+    createdAt: m.updatedAt,
+    deletedAt: null,
+    ...m,
+  }
+}
+
 async function runOnce(): Promise<void> {
   set({ status: 'syncing' })
   try {
     const outbox = await db.outbox.toArray()
     const taskIds = outbox.filter((o) => o.table === 'tasks').map((o) => o.id)
     const dayIds = outbox.filter((o) => o.table === 'days').map((o) => o.id)
-    const [tasks, days] = await Promise.all([db.tasks.bulkGet(taskIds), db.days.bulkGet(dayIds)])
+    const meetingIds = outbox.filter((o) => o.table === 'meetings').map((o) => o.id)
+    const [tasks, days, meetings] = await Promise.all([
+      db.tasks.bulkGet(taskIds),
+      db.days.bulkGet(dayIds),
+      db.meetings.bulkGet(meetingIds),
+    ])
     const pushTasks = tasks.filter((t): t is Task => !!t)
     const pushDays = days.filter((d): d is Day => !!d)
+    const pushMeetings = meetings.filter((m): m is Meeting => !!m)
 
-    const res = await api<{ cursor: number; tasks: Task[]; days: Day[] }>('/sync', {
-      body: { cursor: Number(read(K.cursor) ?? 0), tasks: pushTasks, days: pushDays },
+    const res = await api<{ cursor: number; tasks: Task[]; days: Day[]; meetings?: Meeting[] }>('/sync', {
+      body: { cursor: Number(read(K.cursor) ?? 0), tasks: pushTasks, days: pushDays, meetings: pushMeetings },
     })
 
-    await db.transaction('rw', db.tasks, db.days, db.outbox, async () => {
+    await db.transaction('rw', db.tasks, db.days, db.meetings, db.outbox, async () => {
       // 推送期间如果又改了，updatedAt 会变，这样的待推送项留到下一轮
       const pushed = new Map<string, string>()
       pushTasks.forEach((t) => pushed.set(`tasks:${t.id}`, t.updatedAt))
       pushDays.forEach((d) => pushed.set(`days:${d.date}`, d.updatedAt))
+      pushMeetings.forEach((m) => pushed.set(`meetings:${m.id}`, m.updatedAt))
       const current = await db.outbox.bulkGet(outbox.map((o) => o.key))
       await db.outbox.bulkDelete(
         current.filter((o): o is OutboxEntry => !!o && (pushed.get(o.key) ?? '') >= o.updatedAt).map((o) => o.key),
@@ -206,6 +242,11 @@ async function runOnce(): Promise<void> {
       for (const d of res.days) {
         const local = await db.days.get(d.date)
         if (!local || d.updatedAt > local.updatedAt) await db.days.put(d)
+      }
+      // 时间相同时也用服务器的：两台设备各自生成的同一次例会，以先传上去的为准
+      for (const raw of res.meetings ?? []) {
+        const local = await db.meetings.get(raw.id)
+        if (!local || raw.updatedAt >= local.updatedAt) await db.meetings.put(normalizeMeeting(raw))
       }
     })
     write(K.cursor, String(res.cursor))

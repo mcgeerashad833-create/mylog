@@ -1,4 +1,4 @@
-import { db, type Day, type Subtask, type Task } from './db'
+import { db, type Day, type OutboxEntry, type Subtask, type Task } from './db'
 import { todayKey } from './lib/date'
 import { nextAfter, type Repeat } from './lib/repeat'
 import { scheduleSync } from './sync'
@@ -7,7 +7,7 @@ const uid = () => crypto.randomUUID()
 const now = () => new Date().toISOString()
 
 /** 记下哪些记录改过，等下次同步时推送 */
-async function touch(table: 'tasks' | 'days', ids: string[], updatedAt: string): Promise<void> {
+export async function touch(table: OutboxEntry['table'], ids: string[], updatedAt: string): Promise<void> {
   await db.outbox.bulkPut(ids.map((id) => ({ key: `${table}:${id}`, table, id, updatedAt })))
   scheduleSync()
 }
@@ -27,6 +27,8 @@ export interface NewTask {
   star?: boolean
   tag?: string | null
   repeat?: Repeat | null
+  note?: string
+  meetingId?: string | null
 }
 
 export async function addTask(input: NewTask): Promise<Task> {
@@ -37,7 +39,7 @@ export async function addTask(input: NewTask): Promise<Task> {
   const task: Task = {
     id: uid(),
     title: input.title,
-    note: '',
+    note: input.note ?? '',
     date: input.date === undefined ? todayKey() : input.date,
     time: input.time ?? null,
     star: input.star ?? false,
@@ -49,6 +51,7 @@ export async function addTask(input: NewTask): Promise<Task> {
     repeat: input.repeat ?? null,
     remindBefore: 0,
     spawnedId: null,
+    meetingId: input.meetingId ?? null,
     createdAt: ts,
     updatedAt: ts,
     deletedAt: null,
