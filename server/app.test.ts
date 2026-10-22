@@ -13,6 +13,8 @@ const available = await pool
   .query('SELECT 1')
   .then(() => true)
   .catch(() => false)
+// CI 里设置 REQUIRE_DB=1：连不上数据库要直接失败，而不是悄悄跳过
+if (!available && process.env.REQUIRE_DB === '1') throw new Error(`连不上测试数据库：${URL}`)
 
 beforeAll(async () => {
   if (!available) return
@@ -98,6 +100,47 @@ describe.skipIf(!available)('服务端', () => {
     for (let i = 0; i < 10; i++) expect((await post(`6.6.6.${i}`, 'wrong-pass')).statusCode).toBe(401)
     expect((await post('6.6.6.99', 'secret-123')).statusCode).toBe(429)
     await proxied.close()
+  })
+
+  it('修改密码：要验证当前密码，改完其他设备退出', async () => {
+    const laptop = await login('pw@example.com', 'laptop')
+    const phone = await login('pw@example.com', 'phone')
+    const change = (token: string, current: string, next: string) =>
+      app.inject({ method: 'POST', url: '/api/auth/password', headers: { authorization: `Bearer ${token}` }, payload: { current, next } })
+
+    expect((await change(laptop, 'wrong-pass', 'new-secret-456')).statusCode).toBe(400)
+    expect((await change(laptop, 'secret-123', 'short')).statusCode).toBe(400)
+    const ok = await change(laptop, 'secret-123', 'new-secret-456')
+    expect(ok.json()).toEqual({ ok: true, signedOut: 1 })
+
+    const me = (token: string) => app.inject({ method: 'GET', url: '/api/me', headers: { authorization: `Bearer ${token}` } })
+    expect((await me(laptop)).statusCode).toBe(200)
+    expect((await me(phone)).statusCode).toBe(401)
+
+    const loginWith = (password: string) =>
+      app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'pw@example.com', password } })
+    expect((await loginWith('secret-123')).statusCode).toBe(401)
+    expect((await loginWith('new-secret-456')).statusCode).toBe(200)
+  })
+
+  it('修改密码时猜当前密码也有次数限制', async () => {
+    const token = await login('pwlock@example.com')
+    const change = (current: string) =>
+      app.inject({ method: 'POST', url: '/api/auth/password', headers: { authorization: `Bearer ${token}` }, payload: { current, next: 'new-secret-456' } })
+    for (let i = 0; i < 10; i++) expect((await change('wrong-pass')).statusCode).toBe(400)
+    expect((await change('secret-123')).statusCode).toBe(429)
+  })
+
+  it('30 天没用的登录自动失效', async () => {
+    const token = await login('idle@example.com')
+    const me = () => app.inject({ method: 'GET', url: '/api/me', headers: { authorization: `Bearer ${token}` } })
+    expect((await me()).statusCode).toBe(200)
+    await pool.query("UPDATE sessions SET last_seen = NOW() - INTERVAL 31 DAY WHERE user_id = (SELECT id FROM users WHERE email = 'idle@example.com')")
+    const res = await me()
+    expect(res.statusCode).toBe(401)
+    expect(res.json().error).toContain('30 天')
+    // 失效的登录会被删掉，之后再用也是 401
+    expect((await me()).statusCode).toBe(401)
   })
 
   it('没登录不能同步', async () => {

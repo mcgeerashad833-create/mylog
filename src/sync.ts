@@ -75,7 +75,8 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   }
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    if (res.status === 401 && token) signedOut()
+    // 登录失效（比如 30 天没用、在别的设备上改了密码），告诉用户原因
+    if (res.status === 401 && token) signedOut(data.error)
     throw new ApiError(res.status, data.error ?? '请求失败')
   }
   return data as T
@@ -107,11 +108,11 @@ export async function signIn(mode: 'login' | 'register', email: string, password
   await syncNow()
 }
 
-function signedOut() {
+function signedOut(reason?: string) {
   write(K.token, null)
   write(K.email, null)
   write(K.cursor, null)
-  set({ email: null, status: 'off', error: null, lastSyncedAt: null })
+  set({ email: null, status: 'off', error: reason ?? null, lastSyncedAt: null })
 }
 
 /** 退出登录：先把没推上去的改动推完，再清空本机数据（云端保留） */
