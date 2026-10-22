@@ -45,6 +45,7 @@ export function SettingsView() {
 }
 
 function Login() {
+  const sync = useSyncState()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -72,6 +73,11 @@ function Login() {
         void submit()
       }}
     >
+      {sync.error && (
+        <p role="alert" style={{ margin: 0, color: 'var(--star)', fontSize: 13 }}>
+          {sync.error}
+        </p>
+      )}
       <p className="subtle" style={{ margin: 0 }}>
         登录后，电脑和手机上的清单会自动同步。本机已有的事会一起上传到账户里。
       </p>
@@ -177,6 +183,8 @@ function Account({ sync }: { sync: SyncState }) {
         ))}
       </section>
 
+      <ChangePassword onChanged={load} />
+
       <section style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
         <button
           className="btn"
@@ -195,6 +203,97 @@ function Account({ sync }: { sync: SyncState }) {
         )}
       </section>
     </>
+  )
+}
+
+function ChangePassword({ onChanged }: { onChanged: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [current, setCurrent] = useState('')
+  const [next, setNext] = useState('')
+  const [confirmNext, setConfirmNext] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [done, setDone] = useState('')
+
+  if (!open) {
+    return (
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+        <button
+          className="btn"
+          onClick={() => {
+            setOpen(true)
+            setDone('')
+          }}
+        >
+          修改密码
+        </button>
+        {done && (
+          <p role="status" style={{ margin: 0, color: 'var(--ok)', fontSize: 13 }}>
+            {done}
+          </p>
+        )}
+      </section>
+    )
+  }
+
+  async function submit() {
+    setError('')
+    if (next !== confirmNext) return setError('两次输入的新密码不一样')
+    setBusy(true)
+    try {
+      const r = await api<{ signedOut: number }>('/auth/password', { body: { current, next } })
+      setOpen(false)
+      setCurrent('')
+      setNext('')
+      setConfirmNext('')
+      setDone(r.signedOut > 0 ? `密码已修改，其他 ${r.signedOut} 台设备已退出登录。` : '密码已修改。')
+      onChanged()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form
+      className="login"
+      aria-label="修改密码"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void submit()
+      }}
+    >
+      <h2 className="group-title" style={{ margin: 0 }}>
+        修改密码
+      </h2>
+      <div className="form-field">
+        <label htmlFor="pw-current">当前密码</label>
+        <input id="pw-current" type="password" autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
+      </div>
+      <div className="form-field">
+        <label htmlFor="pw-next">新密码</label>
+        <input id="pw-next" type="password" autoComplete="new-password" required minLength={8} placeholder="至少 8 位" value={next} onChange={(e) => setNext(e.target.value)} />
+      </div>
+      <div className="form-field">
+        <label htmlFor="pw-confirm">再输一次新密码</label>
+        <input id="pw-confirm" type="password" autoComplete="new-password" required value={confirmNext} onChange={(e) => setConfirmNext(e.target.value)} />
+      </div>
+      <span className="tiny">改完后，其他设备都会退出登录，需要用新密码重新登录。</span>
+      {error && (
+        <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: 13 }}>
+          {error}
+        </p>
+      )}
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button type="submit" className="btn primary big" disabled={busy}>
+          {busy ? '请稍候…' : '确认修改'}
+        </button>
+        <button type="button" className="btn ghost big" onClick={() => setOpen(false)}>
+          取消
+        </button>
+      </div>
+    </form>
   )
 }
 

@@ -59,8 +59,6 @@ export function QuickAdd({ today, defaultDate, placeholder, inputRef, onNotice, 
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) void submit()
             if (e.key === 'Escape') {
               setDraft('')
-    // 带时间的事默认准时提醒；按回车属于用户操作，可以在这时申请通知权限
-    if (parsed.time) void ensureNotifyPermission()
               e.currentTarget.blur()
             }
           }}

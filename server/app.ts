@@ -9,6 +9,8 @@ const PASSWORD_MIN = 8
 const PASSWORD_MAX = 128
 const LOGIN_MAX_FAILURES = 10
 const LOGIN_WINDOW_MS = 15 * 60 * 1000
+/** 一台设备连续这么久没用，登录就失效，需要重新输入密码 */
+const SESSION_IDLE_MS = 30 * 86400_000
 const MAX_RECORDS = 5000
 const MAX_RECORD_BYTES = 64 * 1024
 /** 一场会议带着全部记录，允许大一些 */
@@ -99,8 +101,12 @@ export function buildApp({ pool, staticDir, logger = false, trustProxy = false }
   async function auth(req: FastifyRequest): Promise<{ userId: number; sessionId: number }> {
     const m = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')
     if (!m) throw new HttpError(401, '请先登录')
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT id, user_id FROM sessions WHERE token_hash = ?', [sha256(m[1])])
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT id, user_id, last_seen FROM sessions WHERE token_hash = ?', [sha256(m[1])])
     if (!rows.length) throw new HttpError(401, '登录已失效，请重新登录')
+    if (Date.now() - new Date(rows[0].last_seen).getTime() > SESSION_IDLE_MS) {
+      await pool.query('DELETE FROM sessions WHERE id = ?', [rows[0].id])
+      throw new HttpError(401, '超过 30 天没有使用，请重新登录')
+    }
     await pool.query('UPDATE sessions SET last_seen = ? WHERE id = ?', [new Date(), rows[0].id])
     return { userId: rows[0].user_id, sessionId: rows[0].id }
   }
@@ -122,6 +128,8 @@ export function buildApp({ pool, staticDir, logger = false, trustProxy = false }
   }
 
   async function createSession(userId: number, device: string) {
+    // 顺手清掉这个账户下已经过期的登录
+    await pool.query('DELETE FROM sessions WHERE user_id = ? AND last_seen < ?', [userId, new Date(Date.now() - SESSION_IDLE_MS)])
     const token = randomBytes(32).toString('base64url')
     await pool.query('INSERT INTO sessions (token_hash, user_id, device) VALUES (?, ?, ?)', [sha256(token), userId, device])
     return token
@@ -161,6 +169,26 @@ export function buildApp({ pool, staticDir, logger = false, trustProxy = false }
     }
     failures.clear(limitKey)
     return { token: await createSession(rows[0].id, device), email }
+  })
+
+  app.post('/api/auth/password', async (req) => {
+    const { userId, sessionId } = await auth(req)
+    const b = (req.body ?? {}) as { current?: unknown; next?: unknown }
+    const current = typeof b.current === 'string' ? b.current : ''
+    const next = typeof b.next === 'string' ? b.next : ''
+    const limitKey = `password|${userId}`
+    if (failures.blocked(limitKey)) throw new HttpError(429, '尝试次数太多，请 15 分钟后再试')
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT password_hash FROM users WHERE id = ?', [userId])
+    if (!(await verifyPassword(current, rows[0].password_hash))) {
+      failures.add(limitKey)
+      throw new HttpError(400, '当前密码不对')
+    }
+    failures.clear(limitKey)
+    if (next.length < PASSWORD_MIN || next.length > PASSWORD_MAX) throw new HttpError(400, `新密码需要 ${PASSWORD_MIN}–${PASSWORD_MAX} 位`)
+    await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [await hashPassword(next), userId])
+    // 改密码多半是担心泄露，其他设备一律退出，只保留当前这台
+    const [res] = await pool.query<ResultSetHeader>('DELETE FROM sessions WHERE user_id = ? AND id <> ?', [userId, sessionId])
+    return { ok: true, signedOut: res.affectedRows }
   })
 
   app.post('/api/auth/logout', async (req) => {

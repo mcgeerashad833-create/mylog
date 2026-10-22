@@ -9,7 +9,10 @@ export function createPool(
 ): Pool {
   // 云数据库走公网时用 SSL，并用云厂商提供的 CA 证书校验对方身份
   const ssl = caFile ? { ca: readFileSync(caFile, 'utf8'), rejectUnauthorized: true } : undefined
-  return mysql.createPool({ uri: url, connectionLimit: 10, charset: 'utf8mb4', timezone: 'Z', ...(ssl && { ssl }) })
+  const pool = mysql.createPool({ uri: url, connectionLimit: 10, charset: 'utf8mb4', timezone: 'Z', ...(ssl && { ssl }) })
+  // 程序按 UTC 读写时间；云数据库常设为北京时间，CURRENT_TIMESTAMP 默认值会差 8 小时，所以每个连接都切到 UTC
+  pool.pool.on('connection', (conn) => conn.query("SET time_zone = '+00:00'"))
+  return pool
 }
 
 const MIGRATIONS = [
