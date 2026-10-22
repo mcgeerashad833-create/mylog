@@ -10,17 +10,10 @@ const MIGRATIONS = [
   `CREATE TABLE IF NOT EXISTS users (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(254) NOT NULL UNIQUE,
+    password_hash VARCHAR(200) NOT NULL,
     -- 每次有记录变化就加一，作为客户端拉取的游标
     seq BIGINT UNSIGNED NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
-
-  `CREATE TABLE IF NOT EXISTS login_codes (
-    email VARCHAR(254) NOT NULL PRIMARY KEY,
-    code_hash CHAR(64) NOT NULL,
-    attempts INT NOT NULL DEFAULT 0,
-    sent_at DATETIME NOT NULL,
-    expires_at DATETIME NOT NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
   `CREATE TABLE IF NOT EXISTS sessions (
@@ -60,4 +53,10 @@ const MIGRATIONS = [
 
 export async function migrate(pool: Pool): Promise<void> {
   for (const sql of MIGRATIONS) await pool.query(sql)
+  // 早期版本用邮箱验证码登录，没有密码列
+  const [cols] = await pool.query<mysql.RowDataPacket[]>(
+    "SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'users' AND column_name = 'password_hash'",
+  )
+  if (!cols.length) await pool.query("ALTER TABLE users ADD COLUMN password_hash VARCHAR(200) NOT NULL DEFAULT '' AFTER email")
+  await pool.query('DROP TABLE IF EXISTS login_codes')
 }

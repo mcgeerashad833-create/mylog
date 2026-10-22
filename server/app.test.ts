@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from './app.ts'
+import type { RowDataPacket } from 'mysql2/promise'
 import { createPool, migrate, type Pool } from './db.ts'
 
 // 需要一个空的测试库；连不上就跳过（例如没有装 MySQL 的环境）
 const URL = process.env.TEST_DATABASE_URL ?? 'mysql://mylog:mylog_dev@localhost:3306/mylog_test'
 
 const pool: Pool = createPool(URL)
-const codes = new Map<string, string>()
 let app: ReturnType<typeof buildApp>
 
 const available = await pool
@@ -18,7 +18,7 @@ beforeAll(async () => {
   if (!available) return
   await pool.query('DROP TABLE IF EXISTS tasks, days, sessions, login_codes, users')
   await migrate(pool)
-  app = buildApp({ pool, sendCode: async (email, code) => void codes.set(email, code) })
+  app = buildApp({ pool })
 })
 
 afterAll(async () => {
@@ -27,9 +27,10 @@ afterAll(async () => {
 })
 
 async function login(email: string, device = 'test') {
-  await app.inject({ method: 'POST', url: '/api/auth/code', payload: { email } })
-  const res = await app.inject({ method: 'POST', url: '/api/auth/verify', payload: { email, code: codes.get(email), device } })
-  return res.json().token as string
+  const res = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password: 'secret-123', device } })
+  if (res.statusCode === 200) return res.json().token as string
+  const again = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password: 'secret-123', device } })
+  return again.json().token as string
 }
 
 function sync(token: string, payload: object) {
@@ -41,37 +42,45 @@ function sync(token: string, payload: object) {
 const task = (id: string, title: string, updatedAt: string) => ({ id, title, updatedAt, deletedAt: null })
 
 describe.skipIf(!available)('服务端', () => {
-  it('邮箱验证码登录', async () => {
-    const bad = await app.inject({ method: 'POST', url: '/api/auth/code', payload: { email: 'not-an-email' } })
-    expect(bad.statusCode).toBe(400)
+  it('邮箱密码注册与登录', async () => {
+    const post = (url: string, payload: object) => app.inject({ method: 'POST', url, payload })
 
-    await app.inject({ method: 'POST', url: '/api/auth/code', payload: { email: 'A@Example.com ' } })
-    expect(codes.get('a@example.com')).toMatch(/^\d{6}$/)
+    expect((await post('/api/auth/register', { email: 'not-an-email', password: 'secret-123' })).statusCode).toBe(400)
+    expect((await post('/api/auth/register', { email: 'a@example.com', password: 'short' })).statusCode).toBe(400)
 
-    const again = await app.inject({ method: 'POST', url: '/api/auth/code', payload: { email: 'a@example.com' } })
-    expect(again.statusCode).toBe(429)
+    const reg = await post('/api/auth/register', { email: 'A@Example.com ', password: 'secret-123', device: 'MacBook' })
+    expect(reg.statusCode).toBe(200)
+    expect(reg.json().email).toBe('a@example.com')
 
-    const wrong = await app.inject({ method: 'POST', url: '/api/auth/verify', payload: { email: 'a@example.com', code: '000000x' } })
-    expect(wrong.statusCode).toBe(400)
+    const dup = await post('/api/auth/register', { email: 'a@example.com', password: 'another-123' })
+    expect(dup.statusCode).toBe(409)
 
-    const ok = await app.inject({
-      method: 'POST',
-      url: '/api/auth/verify',
-      payload: { email: 'a@example.com', code: codes.get('a@example.com'), device: 'MacBook' },
-    })
+    const wrong = await post('/api/auth/login', { email: 'a@example.com', password: 'wrong-pass' })
+    expect(wrong.statusCode).toBe(401)
+    const nobody = await post('/api/auth/login', { email: 'nobody@example.com', password: 'secret-123' })
+    expect(nobody.statusCode).toBe(401)
+    expect(nobody.json().error).toBe(wrong.json().error)
+
+    const ok = await post('/api/auth/login', { email: 'a@example.com', password: 'secret-123', device: 'iPhone' })
     expect(ok.statusCode).toBe(200)
-    expect(ok.json().email).toBe('a@example.com')
-
-    // 验证码只能用一次
-    const reuse = await app.inject({
-      method: 'POST',
-      url: '/api/auth/verify',
-      payload: { email: 'a@example.com', code: codes.get('a@example.com') },
-    })
-    expect(reuse.statusCode).toBe(400)
 
     const me = await app.inject({ method: 'GET', url: '/api/me', headers: { authorization: `Bearer ${ok.json().token}` } })
-    expect(me.json()).toMatchObject({ email: 'a@example.com', sessions: [{ device: 'MacBook', current: true }] })
+    expect(me.json().email).toBe('a@example.com')
+    expect(me.json().sessions).toHaveLength(2)
+    expect(me.json().sessions.find((s: { current: boolean }) => s.current).device).toBe('iPhone')
+
+    // 数据库里不存明文密码
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT password_hash FROM users WHERE email = ?', ['a@example.com'])
+    expect(rows[0].password_hash).toMatch(/^scrypt\$/)
+    expect(rows[0].password_hash).not.toContain('secret-123')
+  })
+
+  it('连续输错密码会被暂时锁住', async () => {
+    await login('lock@example.com')
+    const post = (password: string) =>
+      app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'lock@example.com', password } })
+    for (let i = 0; i < 10; i++) expect((await post('wrong-pass')).statusCode).toBe(401)
+    expect((await post('secret-123')).statusCode).toBe(429)
   })
 
   it('没登录不能同步', async () => {

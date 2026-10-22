@@ -90,12 +90,9 @@ function deviceName(): string {
   return `${os} · ${browser}`
 }
 
-export function requestCode(email: string) {
-  return api<{ ok: true }>('/auth/code', { body: { email } })
-}
-
-export async function verifyCode(email: string, code: string): Promise<void> {
-  const res = await api<{ token: string; email: string }>('/auth/verify', { body: { email, code, device: deviceName() } })
+/** mode：login 登录已有账户，register 注册新账户 */
+export async function signIn(mode: 'login' | 'register', email: string, password: string): Promise<void> {
+  const res = await api<{ token: string; email: string }>(`/auth/${mode}`, { body: { email, password, device: deviceName() } })
   write(K.token, res.token)
   write(K.email, res.email)
   write(K.cursor, '0')

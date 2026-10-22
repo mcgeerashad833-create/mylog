@@ -19,7 +19,7 @@ mysql -uroot -e "CREATE DATABASE mylog CHARACTER SET utf8mb4;
   CREATE USER 'mylog'@'localhost' IDENTIFIED BY 'mylog_dev';
   GRANT ALL ON mylog.* TO 'mylog'@'localhost';"
 
-npm run dev:server   # 服务端 http://127.0.0.1:8787（未配置 SMTP 时验证码打印在这里）
+npm run dev:server   # 服务端 http://127.0.0.1:8787
 npm run dev          # 前端 http://localhost:5173，/api 自动转发到服务端
 npm test             # 单元测试 + 服务端接口测试（接口测试用 mylog_test 库，连不上会跳过）
 ```
@@ -28,7 +28,7 @@ npm test             # 单元测试 + 服务端接口测试（接口测试用 my
 
 ```bash
 npm run build                      # 打包前端到 dist/
-DATABASE_URL=... SMTP_HOST=... npm run server   # 同一个进程提供 /api 和前端页面
+DATABASE_URL=... TRUST_PROXY=1 npm run server   # 同一个进程提供 /api 和前端页面
 ```
 
 环境变量见 [.env.example](.env.example)。建议在前面加一层 Nginx 做 HTTPS。
@@ -47,7 +47,7 @@ DATABASE_URL=... SMTP_HOST=... npm run server   # 同一个进程提供 /api 和
 - [x] 之前遗留：全部移到今天 / 逐条处理
 - [x] 收集箱、以后（按日期分组）
 - [x] 任务详情：标题、重要、日期、时间、标签、子步骤、备注、删除（可撤销）
-- [x] 账户与多设备同步（邮箱验证码登录，MySQL）
+- [x] 账户与多设备同步（邮箱 + 密码登录，MySQL）
 - [x] 早间规划（每天首次打开自动弹出，键盘 1/2/3 快速决定）
 - [x] 日志：每天的完成记录、最近 7 天、晚间收尾与一句话总结
 - [x] 重复任务（每天 / 工作日 / 每周几 / 每月几号，完成后自动生成下一次）

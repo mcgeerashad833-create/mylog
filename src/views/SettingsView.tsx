@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, logout, requestCode, syncNow, useSyncState, verifyCode, type SyncState } from '../sync'
+import { api, logout, signIn, syncNow, useSyncState, type SyncState } from '../sync'
 import { ensureNotifyPermission, setRemindersEnabled, useReminderSettings } from '../reminders'
 
 interface Session {
@@ -45,24 +45,18 @@ export function SettingsView() {
 }
 
 function Login() {
+  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
-  const [code, setCode] = useState('')
-  const [sent, setSent] = useState(false)
+  const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [cooldown, setCooldown] = useState(0)
+  const register = mode === 'register'
 
-  useEffect(() => {
-    if (cooldown <= 0) return
-    const id = setTimeout(() => setCooldown(cooldown - 1), 1000)
-    return () => clearTimeout(id)
-  }, [cooldown])
-
-  async function run(fn: () => Promise<void>) {
+  async function submit() {
     setBusy(true)
     setError('')
     try {
-      await fn()
+      await signIn(mode, email, password)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -70,24 +64,16 @@ function Login() {
     }
   }
 
-  const send = () =>
-    run(async () => {
-      await requestCode(email)
-      setSent(true)
-      setCooldown(60)
-    })
-
   return (
     <form
       className="login"
       onSubmit={(e) => {
         e.preventDefault()
-        if (!sent) void send()
-        else void run(() => verifyCode(email, code))
+        void submit()
       }}
     >
       <p className="subtle" style={{ margin: 0 }}>
-        用邮箱登录后，电脑和手机上的清单会自动同步。本机已有的事会一起上传到账户里。
+        登录后，电脑和手机上的清单会自动同步。本机已有的事会一起上传到账户里。
       </p>
       <div className="form-field">
         <label htmlFor="login-email">邮箱</label>
@@ -97,47 +83,45 @@ function Login() {
           autoComplete="email"
           required
           value={email}
-          disabled={sent}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
         />
       </div>
-      {sent && (
-        <div className="form-field">
-          <label htmlFor="login-code">验证码</label>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <input
-              id="login-code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              required
-              autoFocus
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              placeholder="邮件里的 6 位数字"
-              style={{ flex: 1 }}
-            />
-            <button type="button" className="btn big" disabled={busy || cooldown > 0} onClick={() => void send()}>
-              {cooldown > 0 ? `${cooldown} 秒后重发` : '重新发送'}
-            </button>
-          </div>
-          <span className="tiny">
-            已发送到 {email}，10 分钟内有效。
-            <button type="button" className="link-btn" style={{ padding: 0, fontSize: 12 }} onClick={() => setSent(false)}>
-              换个邮箱
-            </button>
-          </span>
-        </div>
-      )}
+      <div className="form-field">
+        <label htmlFor="login-password">密码</label>
+        <input
+          id="login-password"
+          type="password"
+          autoComplete={register ? 'new-password' : 'current-password'}
+          required
+          minLength={register ? 8 : undefined}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder={register ? '至少 8 位' : ''}
+        />
+      </div>
       {error && (
         <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: 13 }}>
           {error}
         </p>
       )}
       <button type="submit" className="btn primary big" disabled={busy}>
-        {busy ? '请稍候…' : sent ? '登录' : '发送验证码'}
+        {busy ? '请稍候…' : register ? '注册并登录' : '登录'}
       </button>
+      <span className="tiny">
+        {register ? '已经有账户了？' : '还没有账户？'}
+        <button
+          type="button"
+          className="link-btn"
+          style={{ padding: 0, fontSize: 12 }}
+          onClick={() => {
+            setMode(register ? 'login' : 'register')
+            setError('')
+          }}
+        >
+          {register ? '去登录' : '注册一个'}
+        </button>
+      </span>
     </form>
   )
 }

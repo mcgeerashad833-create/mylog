@@ -1,14 +1,14 @@
-import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
+import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual, type BinaryLike } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify'
 import fastifyStatic from '@fastify/static'
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise'
 import type { Pool } from './db.ts'
-import type { SendCode } from './mail.ts'
 
-const CODE_TTL_MS = 10 * 60 * 1000
-const CODE_RESEND_MS = 60 * 1000
-const CODE_MAX_ATTEMPTS = 5
+const PASSWORD_MIN = 8
+const PASSWORD_MAX = 128
+const LOGIN_MAX_FAILURES = 10
+const LOGIN_WINDOW_MS = 15 * 60 * 1000
 const MAX_RECORDS = 5000
 const MAX_RECORD_BYTES = 64 * 1024
 
@@ -19,12 +19,52 @@ const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex')
 
+const scrypt = (pw: BinaryLike, salt: BinaryLike) =>
+  new Promise<Buffer>((resolve, reject) => scryptCb(pw, salt, 32, (err, key) => (err ? reject(err) : resolve(key))))
+
+/** 存储格式：scrypt$<salt hex>$<hash hex> */
+export async function hashPassword(pw: string): Promise<string> {
+  const salt = randomBytes(16)
+  return `scrypt$${salt.toString('hex')}$${(await scrypt(pw, salt)).toString('hex')}`
+}
+
+export async function verifyPassword(pw: string, stored: string): Promise<boolean> {
+  const [algo, salt, hash] = stored.split('$')
+  if (algo !== 'scrypt' || !salt || !hash) return false
+  const key = await scrypt(pw, Buffer.from(salt, 'hex'))
+  const expected = Buffer.from(hash, 'hex')
+  return key.length === expected.length && timingSafeEqual(key, expected)
+}
+
+const DUMMY_HASH = `scrypt$${'0'.repeat(32)}$${'0'.repeat(64)}`
+
+/** 登录失败计数（按邮箱 + IP），单进程内存即可 */
+function failureCounter() {
+  const map = new Map<string, { n: number; since: number }>()
+  return {
+    blocked(key: string) {
+      const e = map.get(key)
+      if (e && Date.now() - e.since > LOGIN_WINDOW_MS) map.delete(key)
+      return (map.get(key)?.n ?? 0) >= LOGIN_MAX_FAILURES
+    },
+    add(key: string) {
+      const e = map.get(key)
+      if (e) e.n += 1
+      else map.set(key, { n: 1, since: Date.now() })
+    },
+    clear(key: string) {
+      map.delete(key)
+    },
+  }
+}
+
 interface Options {
   pool: Pool
-  sendCode: SendCode
   /** 打包后的前端目录；存在时一并托管 */
   staticDir?: string
   logger?: boolean
+  /** 部署在 Nginx 等反向代理后面时设为 true，才能拿到真实 IP */
+  trustProxy?: boolean
 }
 
 class HttpError extends Error {
@@ -40,8 +80,9 @@ interface Rec {
   [k: string]: unknown
 }
 
-export function buildApp({ pool, sendCode, staticDir, logger = false }: Options) {
-  const app = Fastify({ logger, bodyLimit: 8 * 1024 * 1024 })
+export function buildApp({ pool, staticDir, logger = false, trustProxy = false }: Options) {
+  const app = Fastify({ logger, bodyLimit: 8 * 1024 * 1024, trustProxy })
+  const failures = failureCounter()
 
   app.setErrorHandler((err: Error & { statusCode?: number }, _req, reply) => {
     if (err instanceof HttpError) return reply.status(err.status).send({ error: err.message })
@@ -67,44 +108,54 @@ export function buildApp({ pool, sendCode, staticDir, logger = false }: Options)
 
   // ---- 登录 ----
 
-  app.post('/api/auth/code', async (req) => {
-    const email = normEmail((req.body as { email?: unknown })?.email)
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT sent_at FROM login_codes WHERE email = ?', [email])
-    if (rows.length && Date.now() - new Date(rows[0].sent_at).getTime() < CODE_RESEND_MS) {
-      throw new HttpError(429, '发送太频繁，请一分钟后再试')
+  function readCredentials(body: unknown) {
+    const b = (body ?? {}) as { email?: unknown; password?: unknown; device?: unknown }
+    const email = normEmail(b.email)
+    const password = typeof b.password === 'string' ? b.password : ''
+    const device = typeof b.device === 'string' ? b.device.slice(0, 100) : ''
+    return { email, password, device }
+  }
+
+  async function createSession(userId: number, device: string) {
+    const token = randomBytes(32).toString('base64url')
+    await pool.query('INSERT INTO sessions (token_hash, user_id, device) VALUES (?, ?, ?)', [sha256(token), userId, device])
+    return token
+  }
+
+  app.post('/api/auth/register', async (req) => {
+    const { email, password, device } = readCredentials(req.body)
+    if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) {
+      throw new HttpError(400, `密码需要 ${PASSWORD_MIN}–${PASSWORD_MAX} 位`)
     }
-    const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
-    const now = new Date()
-    await pool.query(
-      `INSERT INTO login_codes (email, code_hash, attempts, sent_at, expires_at) VALUES (?, ?, 0, ?, ?)
-       ON DUPLICATE KEY UPDATE code_hash = VALUES(code_hash), attempts = 0, sent_at = VALUES(sent_at), expires_at = VALUES(expires_at)`,
-      [email, sha256(email + ':' + code), now, new Date(now.getTime() + CODE_TTL_MS)],
-    )
-    await sendCode(email, code)
-    return { ok: true }
+    const hash = await hashPassword(password)
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT id, password_hash FROM users WHERE email = ?', [email])
+    let userId: number
+    if (!rows.length) {
+      const [res] = await pool.query<ResultSetHeader>('INSERT INTO users (email, password_hash) VALUES (?, ?)', [email, hash])
+      userId = res.insertId
+    } else if (rows[0].password_hash === '') {
+      // 早期验证码版本留下的账户还没有密码，允许补设一次
+      await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [hash, rows[0].id])
+      userId = rows[0].id
+    } else {
+      throw new HttpError(409, '这个邮箱已经注册过了，请直接登录')
+    }
+    return { token: await createSession(userId, device), email }
   })
 
-  app.post('/api/auth/verify', async (req) => {
-    const body = (req.body ?? {}) as { email?: unknown; code?: unknown; device?: unknown }
-    const email = normEmail(body.email)
-    const code = typeof body.code === 'string' ? body.code.trim() : ''
-    const device = typeof body.device === 'string' ? body.device.slice(0, 100) : ''
-
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM login_codes WHERE email = ?', [email])
-    const row = rows[0]
-    if (!row || new Date(row.expires_at).getTime() < Date.now()) throw new HttpError(400, '验证码已过期，请重新获取')
-    if (row.attempts >= CODE_MAX_ATTEMPTS) throw new HttpError(429, '错误次数太多，请重新获取验证码')
-    const ok = timingSafeEqual(Buffer.from(sha256(email + ':' + code)), Buffer.from(row.code_hash))
-    if (!ok) {
-      await pool.query('UPDATE login_codes SET attempts = attempts + 1 WHERE email = ?', [email])
-      throw new HttpError(400, '验证码不对')
+  app.post('/api/auth/login', async (req) => {
+    const { email, password, device } = readCredentials(req.body)
+    const limitKey = `${email}|${req.ip}`
+    if (failures.blocked(limitKey)) throw new HttpError(429, '尝试次数太多，请 15 分钟后再试')
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT id, password_hash FROM users WHERE email = ?', [email])
+    // 账户不存在时也走一遍哈希，避免靠响应时间判断邮箱是否注册过
+    const ok = await verifyPassword(password, rows[0]?.password_hash || DUMMY_HASH)
+    if (!rows.length || !ok) {
+      failures.add(limitKey)
+      throw new HttpError(401, '邮箱或密码不对')
     }
-    await pool.query('DELETE FROM login_codes WHERE email = ?', [email])
-    await pool.query('INSERT IGNORE INTO users (email) VALUES (?)', [email])
-    const [users] = await pool.query<RowDataPacket[]>('SELECT id FROM users WHERE email = ?', [email])
-    const token = randomBytes(32).toString('base64url')
-    await pool.query('INSERT INTO sessions (token_hash, user_id, device) VALUES (?, ?, ?)', [sha256(token), users[0].id, device])
-    return { token, email }
+    failures.clear(limitKey)
+    return { token: await createSession(rows[0].id, device), email }
   })
 
   app.post('/api/auth/logout', async (req) => {
