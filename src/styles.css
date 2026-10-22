@@ -255,3 +255,10 @@ textarea.note:focus { border-color: var(--accent); }
 .week-picker button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .switch-row { display: flex; align-items: center; gap: 12px; min-height: 52px; border-bottom: 1px solid var(--line-soft); }
 .switch-row input[type='checkbox'] { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+
+/* 搜索 */
+.brand { display: flex; align-items: center; justify-content: space-between; padding-right: 0; padding-top: 0; }
+.brand .icon-btn[aria-current='page'] { background: var(--nav-active); color: var(--accent); }
+mark { background: #fdf0c4; color: inherit; border-radius: 2px; padding: 0 1px; }
+.quick-add input[type='search']::-webkit-search-cancel-button { cursor: pointer; }
+.search-day { justify-content: flex-start; gap: 16px; padding: 10px 6px; min-height: 0; line-height: 22px; }

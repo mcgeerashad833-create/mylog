@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities'
 import type { Task } from '../db'
 import { relativeLabel } from '../lib/date'
 import { repeatLabel } from '../lib/repeat'
+import { highlight, snippet } from '../lib/search'
 import { CheckIcon, ClockIcon, GripIcon, ListIcon, StarIcon, CalendarIcon, RepeatIcon } from './Icons'
 
 interface Props {
@@ -16,6 +17,8 @@ interface Props {
   /** 行尾的额外操作按钮（收集箱、遗留处理用） */
   actions?: ReactNode
   sortable?: boolean
+  /** 搜索结果里用：高亮命中的关键词 */
+  query?: string
 }
 
 export function TaskRow(props: Props) {
@@ -57,6 +60,7 @@ function RowView({
   onToggle,
   onOpen,
   actions,
+  query,
   rowRef,
   style,
   dragging,
@@ -79,7 +83,12 @@ function RowView({
         <span>{task.done && <CheckIcon size={12} color="#fff" />}</span>
       </button>
       <button className="row-body" onClick={() => onOpen(task)} aria-label={`打开详情：${task.title}`}>
-        <span className="row-title">{task.title}</span>
+        <span className="row-title">{query ? <Highlight text={task.title} query={query} /> : task.title}</span>
+        {query && snippet(task, query) && (
+          <span className="tiny">
+            <Highlight text={snippet(task, query)!} query={query} />
+          </span>
+        )}
         {hasMeta && (
           <span className="meta">
             {late && <span className="late">{relativeLabel(task.date!, today)}遗留</span>}
@@ -118,5 +127,13 @@ function RowView({
         </span>
       )}
     </div>
+  )
+}
+
+export function Highlight({ text, query }: { text: string; query: string }) {
+  return (
+    <>
+      {highlight(text, query).map((part, i) => (part.hit ? <mark key={i}>{part.text}</mark> : <span key={i}>{part.text}</span>))}
+    </>
   )
 }

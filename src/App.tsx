@@ -4,15 +4,16 @@ import { db, type Task } from './db'
 import { todayKey } from './lib/date'
 import { isAlive, plannedToday, restoreTask, toggleDone } from './store'
 import { DetailDrawer } from './components/DetailDrawer'
-import { BookIcon, CalendarIcon, InboxIcon, SunIcon } from './components/Icons'
+import { BookIcon, CalendarIcon, InboxIcon, SearchIcon, SunIcon } from './components/Icons'
 import { InboxView, LaterView, TodayView, selectToday, type ViewProps } from './views/views'
 import { LogView } from './views/LogView'
+import { SearchView } from './views/SearchView'
 import { SettingsView, syncLabel } from './views/SettingsView'
 import { startAutoSync, useSyncState } from './sync'
 import { useReminders } from './reminders'
 import { PlanDialog, planQueue } from './views/PlanDialog'
 
-type View = 'today' | 'inbox' | 'later' | 'log' | 'settings'
+type View = 'today' | 'inbox' | 'later' | 'log' | 'settings' | 'search'
 
 interface Toast {
   text: string
@@ -34,6 +35,8 @@ export function App() {
   const loaded = useLiveQuery(() => db.tasks.toArray().then((all) => all.filter(isAlive)), [])
   const tasks = loaded ?? []
   const [planning, setPlanning] = useState(false)
+  const [query, setQuery] = useState('')
+  const [logDate, setLogDate] = useState<string | undefined>()
   const [view, setView] = useState<View>('today')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
@@ -60,6 +63,13 @@ export function App() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         inputRef.current?.focus()
+      }
+      // 不在输入框里时按 / 开始搜索
+      const typing = e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable]')
+      if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        setView('search')
+        document.getElementById('search')?.focus()
       }
       if (e.key === 'Escape' && selectedId && !(e.target instanceof HTMLInputElement)) setSelectedId(null)
     }
@@ -95,6 +105,7 @@ export function App() {
     later: tasks.filter((t) => !t.done && t.date !== null && t.date > today).length,
     log: 0,
     settings: 0,
+    search: 0,
   }
 
   const props: ViewProps = {
@@ -119,13 +130,27 @@ export function App() {
   return (
     <div className="app">
       <nav className="sidebar" aria-label="主导航">
-        <div className="brand">MyLog</div>
+        <div className="brand">
+          <span>MyLog</span>
+          <button
+            className="icon-btn"
+            aria-label="搜索（快捷键 /）"
+            title="搜索（/）"
+            aria-current={view === 'search' ? 'page' : undefined}
+            onClick={() => setView('search')}
+          >
+            <SearchIcon />
+          </button>
+        </div>
         {nav.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             className="nav-item"
             aria-current={view === id ? 'page' : undefined}
-            onClick={() => setView(id)}
+            onClick={() => {
+              setLogDate(undefined)
+              setView(id)
+            }}
           >
             <Icon color={view === id ? 'var(--accent)' : 'var(--text-2)'} />
             {label}
@@ -152,7 +177,22 @@ export function App() {
         {view === 'inbox' && <InboxView {...props} />}
         {view === 'later' && <LaterView {...props} />}
         {view === 'settings' && <SettingsView />}
-        {view === 'log' && <LogView tasks={tasks} today={today} onOpen={props.onOpen} onNotice={notice} />}
+        {view === 'search' && (
+          <SearchView
+            tasks={tasks}
+            today={today}
+            query={query}
+            selectedId={selectedId}
+            onQuery={setQuery}
+            onToggle={onToggle}
+            onOpen={props.onOpen}
+            onOpenDay={(d) => {
+              setLogDate(d)
+              setView('log')
+            }}
+          />
+        )}
+        {view === 'log' && <LogView key={logDate ?? 'today'} initialDate={logDate} tasks={tasks} today={today} onOpen={props.onOpen} onNotice={notice} />}
       </main>
 
       {selected && (

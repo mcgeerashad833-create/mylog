@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Task } from '../db'
 import { addDays, longLabel, nowHM, toKey } from '../lib/date'
@@ -7,20 +7,27 @@ import { byOrder, deleteTask, moveTo, saveDay } from '../store'
 interface Props {
   tasks: Task[]
   today: string
+  /** 从搜索结果跳过来时，直接打开那一天 */
+  initialDate?: string
   onOpen: (t: Task) => void
   onNotice: (text: string, undo?: () => void) => void
 }
 
 const doneOn = (t: Task) => (t.done && t.doneAt ? toKey(new Date(t.doneAt)) : null)
 
-export function LogView({ tasks, today, onOpen, onNotice }: Props) {
-  const [date, setDate] = useState(today)
+export function LogView({ tasks, today, initialDate, onOpen, onNotice }: Props) {
+  const [date, setDate] = useState(initialDate ?? today)
   const days = useLiveQuery(() => db.days.toArray(), []) ?? []
   const day = days.find((d) => d.date === date)
   const isToday = date === today
 
   // 过了零点仍停在「昨天」时，跟着切到新的一天
-  useEffect(() => setDate(today), [today])
+  const lastToday = useRef(today)
+  useEffect(() => {
+    if (lastToday.current === today) return
+    lastToday.current = today
+    setDate(today)
+  }, [today])
 
   const done = tasks
     .filter((t) => doneOn(t) === date)
