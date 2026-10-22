@@ -1,6 +1,7 @@
 import { useState, type RefObject } from 'react'
 import { parseQuickAdd } from '../lib/parse'
 import { relativeLabel } from '../lib/date'
+import { looksLikeInvite } from '../lib/invite'
 import { addTask } from '../store'
 import { PlusIcon } from './Icons'
 
@@ -11,9 +12,10 @@ interface Props {
   placeholder: string
   inputRef: RefObject<HTMLInputElement | null>
   onNotice: (text: string) => void
+  onInvite: (text: string) => void
 }
 
-export function QuickAdd({ today, defaultDate, placeholder, inputRef, onNotice }: Props) {
+export function QuickAdd({ today, defaultDate, placeholder, inputRef, onNotice, onInvite }: Props) {
   const [draft, setDraft] = useState('')
   const parsed = parseQuickAdd(draft, today)
   const target = parsed.date ?? defaultDate
@@ -42,6 +44,14 @@ export function QuickAdd({ today, defaultDate, placeholder, inputRef, onNotice }
           placeholder={placeholder}
           autoComplete="off"
           onChange={(e) => setDraft(e.target.value)}
+          onPaste={(e) => {
+            // 粘贴的是腾讯会议邀请，就去新建会议
+            const text = e.clipboardData.getData('text')
+            if (looksLikeInvite(text)) {
+              e.preventDefault()
+              onInvite(text)
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) void submit()
             if (e.key === 'Escape') {

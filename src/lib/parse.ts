@@ -12,9 +12,9 @@ export interface Parsed {
   chips: string[]
 }
 
-const DAY_INDEX: Record<string, number> = { 日: 0, 天: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 }
+export const DAY_INDEX: Record<string, number> = { 日: 0, 天: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 }
 
-function resolveWeekday(today: string, target: number, nextWeek: boolean): string {
+export function resolveWeekday(today: string, target: number, nextWeek: boolean): string {
   const cur = fromKey(today).getDay()
   // 把周一当作一周的开始
   const curMon = (cur + 6) % 7

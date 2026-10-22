@@ -18,6 +18,8 @@ export interface NewTask {
   time?: string | null
   star?: boolean
   tag?: string | null
+  note?: string
+  meetingId?: string | null
 }
 
 export async function addTask(input: NewTask): Promise<Task> {
@@ -28,7 +30,7 @@ export async function addTask(input: NewTask): Promise<Task> {
   const task: Task = {
     id: uid(),
     title: input.title,
-    note: '',
+    note: input.note ?? '',
     date: input.date === undefined ? todayKey() : input.date,
     time: input.time ?? null,
     star: input.star ?? false,
@@ -37,6 +39,7 @@ export async function addTask(input: NewTask): Promise<Task> {
     doneAt: null,
     order: minOrder - 1,
     subtasks: [],
+    meetingId: input.meetingId ?? null,
     createdAt: ts,
     updatedAt: ts,
     deletedAt: null,
