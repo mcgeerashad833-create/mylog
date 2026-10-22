@@ -2,7 +2,7 @@
 
 在线画布：https://claude.ai/artifact/8PSUsodGESYrpbwe1By7WL
 
-功能设计：[docs/02-会议管理功能设计.md](../../docs/02-会议管理功能设计.md)
+功能设计：[docs/03-会议管理功能设计.md](../../docs/03-会议管理功能设计.md)
 
 | 文件 | 页面 |
 | --- | --- |

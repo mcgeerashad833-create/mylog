@@ -1,9 +1,15 @@
+import { readFileSync } from 'node:fs'
 import mysql from 'mysql2/promise'
 
 export type Pool = mysql.Pool
 
-export function createPool(url = process.env.DATABASE_URL ?? 'mysql://mylog:mylog_dev@localhost:3306/mylog'): Pool {
-  return mysql.createPool({ uri: url, connectionLimit: 10, charset: 'utf8mb4', timezone: 'Z' })
+export function createPool(
+  url = process.env.DATABASE_URL ?? 'mysql://mylog:mylog_dev@localhost:3306/mylog',
+  caFile = process.env.DATABASE_CA_FILE,
+): Pool {
+  // 云数据库走公网时用 SSL，并用云厂商提供的 CA 证书校验对方身份
+  const ssl = caFile ? { ca: readFileSync(caFile, 'utf8'), rejectUnauthorized: true } : undefined
+  return mysql.createPool({ uri: url, connectionLimit: 10, charset: 'utf8mb4', timezone: 'Z', ...(ssl && { ssl }) })
 }
 
 const MIGRATIONS = [

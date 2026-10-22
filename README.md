@@ -4,7 +4,7 @@
 
 - 功能设计：[docs/01-功能设计.md](docs/01-功能设计.md)
 - 界面原型：[design/prototype](design/prototype)
-- 会议管理：[功能设计](docs/02-会议管理功能设计.md) · [界面原型](design/meeting-prototype)
+- 会议管理：[功能设计](docs/03-会议管理功能设计.md) · [界面原型](design/meeting-prototype)
 
 前端：React + TypeScript + Vite，数据存在浏览器 IndexedDB，离线可用。服务端：Node.js（Fastify）+ MySQL，负责邮箱登录和多设备同步。
 
@@ -27,21 +27,12 @@ npm test             # 单元测试 + 服务端接口测试（接口测试用 my
 
 ## 部署
 
+云服务器上用 Docker 跑 MyLog，数据存在云数据库（阿里云 RDS、腾讯云 MySQL 等），前面用 Nginx 提供 HTTPS。详见 [docs/02-部署.md](docs/02-部署.md)。
+
 ```bash
-npm run build                      # 打包前端到 dist/
-DATABASE_URL=... TRUST_PROXY=1 npm run server   # 同一个进程提供 /api 和前端页面
+cp .env.example .env        # 填云数据库连接串 DATABASE_URL
+docker compose up -d --build
 ```
-
-环境变量见 [.env.example](.env.example)。建议在前面加一层 Nginx 做 HTTPS。
-
-### 用云数据库（阿里云 RDS、腾讯云 MySQL 等）
-
-1. 选 **MySQL 8**，字符集 **utf8mb4**；建一个空库（例如 `mylog`）和一个只能访问这个库的账号。
-2. 云数据库的白名单里加上云服务器的 IP。云服务器和数据库在同一地域时，用数据库的**内网地址**，更快也更安全。
-3. 在云服务器上设置 `DATABASE_URL=mysql://账号:密码@数据库地址:3306/mylog`，启动服务端，数据表会自动创建。
-   - 密码里有 `@`、`:`、`/` 等符号时，要换成 URL 编码（例如 `@` 写成 `%40`）。
-   - 只能走公网连接时，建议开启 SSL：在连接串后面加 `?ssl=%7B%22rejectUnauthorized%22%3Atrue%7D`（即 `ssl={"rejectUnauthorized":true}`）。
-4. 打开 `http://云服务器地址/api/health` 返回 `{"ok":true}`，说明服务端和数据库都通了。
 
 ## 同步是怎么做的
 
