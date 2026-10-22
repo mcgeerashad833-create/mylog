@@ -78,7 +78,7 @@ export function ActionsView(p: MeetingProps) {
         <section key={g.key} aria-label={g.meeting?.title ?? '已删除的会议'}>
           <h2 className="group-title">
             {g.meeting ? (
-              <button className="link-btn" onClick={() => p.go({ page: 'minutes', id: g.meeting!.id })}>
+              <button className="text-link" onClick={() => p.go({ page: 'minutes', id: g.meeting!.id })}>
                 {g.meeting.title}
               </button>
             ) : (

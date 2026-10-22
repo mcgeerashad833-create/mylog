@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import type { Meeting, MeetingKind, Repeat } from '../../db'
+import type { Meeting, MeetingKind, MeetingRepeat } from '../../db'
 import { nowHM } from '../../lib/date'
 import { parseInvite, formatMeetingNo, type Invite } from '../../lib/invite'
 import { KIND_LABEL } from '../../lib/meeting'
@@ -145,7 +145,7 @@ export function FormView(p: MeetingProps & { editing?: Meeting; invite?: string 
   }
 
   const field = (key: keyof Draft, label: string, input: ReactNode, wide = false) => (
-    <div className={'form-field' + (wide ? ' wide' : '') + (recognized.has(key) ? ' recognized' : '')}>
+    <div className={'mf-field' + (wide ? ' wide' : '') + (recognized.has(key) ? ' recognized' : '')}>
       <label htmlFor={'mf-' + key}>
         {label}
         {recognized.has(key) && <span className="badge kind-online">已识别</span>}
@@ -261,8 +261,8 @@ export function FormView(p: MeetingProps & { editing?: Meeting; invite?: string 
         <span className="tiny">开始记录过的会，结束 30 分钟后还没整理纪要，会再提醒一次。</span>
         <div className="field-inline" style={{ marginTop: 6 }}>
           <label htmlFor="mf-repeat">重复</label>
-          <select id="mf-repeat" value={d.repeat} onChange={(e) => set('repeat', e.target.value as Repeat)}>
-            {(Object.keys(REPEAT_LABEL) as Repeat[]).map((r) => (
+          <select id="mf-repeat" value={d.repeat} onChange={(e) => set('repeat', e.target.value as MeetingRepeat)}>
+            {(Object.keys(REPEAT_LABEL) as MeetingRepeat[]).map((r) => (
               <option key={r} value={r}>
                 {r === 'none' ? '不重复' : `${REPEAT_LABEL[r]}（例会）`}
               </option>

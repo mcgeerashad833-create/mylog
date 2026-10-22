@@ -181,7 +181,7 @@ export function LiveView({ m, ...p }: MeetingProps & { m: Meeting }) {
         <aside className="split-side">
           {m.prep.length > 0 && <PrepList m={m} compact />}
           <CarryOverList m={m} compact {...p} />
-          <section className="card">
+          <section className="panel">
             <h2>本场已记</h2>
             <div className="stat-grid">
               {stats.map((s) => (

@@ -58,7 +58,7 @@ export function StatsView(p: MeetingProps) {
         </div>
       </div>
 
-      <section className="card">
+      <section className="panel">
         <h2>每周开会时长（小时）</h2>
         <WeeklyChart weeks={weeks} />
         <details className="data-table">
@@ -87,7 +87,7 @@ export function StatsView(p: MeetingProps) {
       </section>
 
       <div className="split" style={{ gap: 16 }}>
-        <section className="card" style={{ flex: '1 1 280px' }}>
+        <section className="panel" style={{ flex: '1 1 280px' }}>
           <h2>本周按形式</h2>
           {(['online', 'offline', 'hybrid'] as const).map((k) => (
             <div key={k} className="kv-row">
@@ -98,7 +98,7 @@ export function StatsView(p: MeetingProps) {
           {thisWeek.count === 0 && <span className="tiny">本周还没有会议。</span>}
         </section>
 
-        <section className="card" style={{ flex: '1 1 280px' }}>
+        <section className="panel" style={{ flex: '1 1 280px' }}>
           <h2>我负责的会议待办</h2>
           <div className="kv-row">
             <span>按时完成</span>

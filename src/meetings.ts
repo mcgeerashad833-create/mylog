@@ -1,4 +1,4 @@
-import { db, type Meeting, type MeetingKind, type MeetingNote, type PrepItem, type Repeat, type Task } from './db'
+import { db, type Meeting, type MeetingKind, type MeetingNote, type PrepItem, type MeetingRepeat, type Task } from './db'
 import { longLabel, todayKey } from './lib/date'
 import { isMine, taskDateFor, type NoteInput } from './lib/meeting'
 import { seriesToExtend } from './lib/series'
@@ -18,7 +18,7 @@ export interface MeetingFields {
   password: string | null
   link: string | null
   remindBefore: number
-  repeat: Repeat
+  repeat: MeetingRepeat
 }
 
 export async function addMeeting(f: MeetingFields, prep: string[] = []): Promise<Meeting> {

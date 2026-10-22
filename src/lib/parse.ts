@@ -1,4 +1,5 @@
 import { addDays, fromKey, relativeLabel } from './date'
+import { firstOnOrAfter, repeatLabel, type Repeat } from './repeat'
 
 export interface Parsed {
   title: string
@@ -8,6 +9,7 @@ export interface Parsed {
   time?: string
   star: boolean
   tag?: string
+  repeat?: Repeat
   /** 用于在输入框下方展示「识别到」的小标签 */
   chips: string[]
 }
@@ -27,11 +29,29 @@ export function resolveWeekday(today: string, target: number, nextWeek: boolean)
 
 /**
  * 解析快速添加里的一句话，例如「明天下午3点 给物业打电话 !」。
- * 支持：今天/明天/后天/周X/下周X、上午/下午/晚上 N点[半|MM]、HH:MM、! 标重要、#标签。
+ * 支持：今天/明天/后天/周X/下周X、上午/下午/晚上 N点[半|MM]、HH:MM、! 标重要、#标签，
+ * 以及重复：每天、每个工作日、每周一三五、每月21号。
  */
 export function parseQuickAdd(input: string, today: string): Parsed {
   let s = input
   const out: Parsed = { title: '', star: false, chips: [] }
+
+  // 先认重复，否则「每周五」里的「周五」会被当成日期
+  const r = s.match(/每(?:一)?天|每日|每(?:个)?工作日|每(?:周|星期)([一二三四五六日天、,，]+)|每(?:个)?月\s*(\d{1,2})\s*[号日]/)
+  if (r) {
+    if (r[1]) {
+      const days = [...new Set([...r[1]].filter((c) => c in DAY_INDEX).map((c) => DAY_INDEX[c]))]
+      out.repeat = { kind: 'weekly', days }
+    } else if (r[2]) {
+      const day = Number(r[2])
+      if (day >= 1 && day <= 31) out.repeat = { kind: 'monthly', day }
+    } else if (r[0].includes('工作日')) {
+      out.repeat = { kind: 'weekdays' }
+    } else {
+      out.repeat = { kind: 'daily' }
+    }
+    if (out.repeat) s = s.replace(r[0], ' ')
+  }
 
   const d = s.match(/(下周|周|星期)([一二三四五六日天])|今天|明天|后天/)
   if (d) {
@@ -70,7 +90,10 @@ export function parseQuickAdd(input: string, today: string): Parsed {
   }
 
   out.title = s.replace(/\s+/g, ' ').trim()
+  // 只写了重复没写日期：从今天起第一个符合的日子开始
+  if (out.repeat && !out.date) out.date = firstOnOrAfter(out.repeat, today)
 
+  if (out.repeat) out.chips.push(repeatLabel(out.repeat))
   if (out.date) out.chips.push(relativeLabel(out.date, today))
   if (out.time) out.chips.push(out.time)
   if (out.star) out.chips.push('重要')

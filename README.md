@@ -6,16 +6,40 @@
 - 界面原型：[design/prototype](design/prototype)
 - 会议管理：[功能设计](docs/02-会议管理功能设计.md) · [界面原型](design/meeting-prototype)
 
+前端：React + TypeScript + Vite，数据存在浏览器 IndexedDB，离线可用。服务端：Node.js（Fastify）+ MySQL，负责邮箱登录和多设备同步。
+
 ## 开发
+
+需要 Node.js 22.18+ 和 MySQL 8。
 
 ```bash
 npm install
-npm run dev        # 本地开发 http://localhost:5173
-npm test           # 单元测试
-npm run build      # 类型检查 + 打包
+
+# 建库（只需一次），表会在服务端启动时自动创建
+mysql -uroot -e "CREATE DATABASE mylog CHARACTER SET utf8mb4;
+  CREATE USER 'mylog'@'localhost' IDENTIFIED BY 'mylog_dev';
+  GRANT ALL ON mylog.* TO 'mylog'@'localhost';"
+
+npm run dev:server   # 服务端 http://127.0.0.1:8787
+npm run dev          # 前端 http://localhost:5173，/api 自动转发到服务端
+npm test             # 单元测试 + 服务端接口测试（接口测试用 mylog_test 库，连不上会跳过）
 ```
 
-技术栈：React + TypeScript + Vite；数据存在浏览器 IndexedDB（Dexie），每条记录带 `updatedAt` / `deletedAt`，为多设备同步做准备。
+## 部署
+
+```bash
+npm run build                      # 打包前端到 dist/
+DATABASE_URL=... TRUST_PROXY=1 npm run server   # 同一个进程提供 /api 和前端页面
+```
+
+环境变量见 [.env.example](.env.example)。建议在前面加一层 Nginx 做 HTTPS。
+
+## 同步是怎么做的
+
+- 每条任务、每天的记录都带 `updatedAt`，删除是软删除（`deletedAt`）。
+- 本地每次修改会记进「待推送」表；同步时把这些推上去，再按游标拉回其他设备的改动。
+- 同一条记录两边都改了，以 `updatedAt` 更晚的为准（后写者胜）。
+- 断网时照常使用，恢复联网、回到窗口或每 30 秒自动同步。
 
 ## 进度
 
@@ -24,6 +48,17 @@ npm run build      # 类型检查 + 打包
 - [x] 之前遗留：全部移到今天 / 逐条处理
 - [x] 收集箱、以后（按日期分组）
 - [x] 任务详情：标题、重要、日期、时间、标签、子步骤、备注、删除（可撤销）
+- [x] 账户与多设备同步（邮箱 + 密码登录，MySQL）
+- [x] 早间规划（每天首次打开自动弹出，键盘 1/2/3 快速决定）
+- [x] 日志：每天的完成记录、最近 7 天、晚间收尾与一句话总结
+- [x] 重复任务（每天 / 工作日 / 每周几 / 每月几号，完成后自动生成下一次）
+- [x] 到点提醒（系统通知，可提前 5–60 分钟，默认安静不响铃）
+- [x] 搜索（标题、备注、子步骤、每天的一句话；`#标签` 只搜标签；快捷键 `/`）
+
+### 会议管理
+
+会议和纪要目前只存在本机，不参与多设备同步；会上领到的、我负责的待办是普通任务，会照常同步。
+
 - [x] 会议日程：今天 / 本周 / 全部，下一场倒计时，腾讯会议一键入会、复制会议号和密码
 - [x] 粘贴腾讯会议邀请自动识别（新建会议页，或在任意快速添加框里直接粘贴）
 - [x] 会中记录：笔记 / 决议 / 待办 / 问题，`决：` `待：` `问：` 前缀，待办识别 `@负责人` 和「周五前」
@@ -39,6 +74,3 @@ npm run build      # 类型检查 + 打包
 - [x] 会议统计：本周 / 最近 8 周开会时长（柱状图，悬停看详情，可展开数据表），按形式分布，会议待办按时完成率
 - [x] 导出日历（.ics）：全部会议或单场会议，例会带重复规则，可导入系统日历 / Outlook / Google 日历
 - [ ] AI 纪要初稿（暂缓）
-- [ ] 账户与多设备同步
-- [ ] 早间规划、日志与晚间收尾
-- [ ] 重复任务、到点提醒、搜索、设置

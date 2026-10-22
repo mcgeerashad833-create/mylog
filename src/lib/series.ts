@@ -1,14 +1,14 @@
-import type { Meeting, MeetingNote, Repeat, Task } from '../db'
+import type { Meeting, MeetingNote, MeetingRepeat, Task } from '../db'
 import { addDays } from './date'
 import { isOthers } from './meeting'
 
-export const REPEAT_LABEL: Record<Repeat, string> = {
+export const REPEAT_LABEL: Record<MeetingRepeat, string> = {
   none: '不重复',
   weekly: '每周',
   biweekly: '每两周',
 }
 
-export function nextDate(date: string, repeat: Repeat): string {
+export function nextDate(date: string, repeat: MeetingRepeat): string {
   return addDays(date, repeat === 'biweekly' ? 14 : 7)
 }
 

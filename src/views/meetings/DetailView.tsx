@@ -72,7 +72,7 @@ export function DetailView({ m, ...p }: MeetingProps & { m: Meeting }) {
       <CarryOverList m={m} {...p} />
       <PrepList m={m} />
 
-      <section className="card">
+      <section className="panel">
         <h2>记录</h2>
         {hasNotes ? (
           <span className="subtle" style={{ fontSize: 13 }}>
@@ -86,7 +86,7 @@ export function DetailView({ m, ...p }: MeetingProps & { m: Meeting }) {
         )}
       </section>
 
-      <section className="card">
+      <section className="panel">
         <h2>提醒</h2>
         <span className="subtle" style={{ fontSize: 13 }}>
           {m.remindBefore > 0 ? `会前 ${m.remindBefore} 分钟提醒` : '会前不提醒'}

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Meeting, MeetingNote } from '../db'
 import { isDuplicate, parseImported } from './importMinutes'
 import { minutesText } from './minutes'
-import { highlight, searchMeetings } from './search'
+import { searchMeetings } from './meetingSearch'
 
 // 2026-10-22 是周四
 const TODAY = '2026-10-22'
@@ -186,13 +186,4 @@ describe('searchMeetings', () => {
   })
 
   it('空关键词没有结果', () => expect(searchMeetings([a], '  ')).toEqual([]))
-})
-
-it('highlight', () => {
-  expect(highlight('预算按 20 万走', ['预算', '万'])).toEqual([
-    { text: '预算', hit: true },
-    { text: '按 20 ', hit: false },
-    { text: '万', hit: true },
-    { text: '走', hit: false },
-  ])
 })

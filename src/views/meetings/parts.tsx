@@ -26,7 +26,7 @@ export function CarryOverList({ m, compact, ...p }: MeetingProps & { m: Meeting;
   if (!m.seriesId) return null
   const from = (t: Task) => p.meetings.find((x) => x.id === t.meetingId)
   return (
-    <section className={compact ? 'side-block' : 'card'}>
+    <section className={compact ? 'side-block' : 'panel'}>
       <h2>上次留下的待办{mine.length + others.length > 0 && ` · ${mine.length + others.length}`}</h2>
       {mine.length + others.length === 0 && <span className="tiny">之前几次的待办都完成了。</span>}
       {mine.map((t) => {
@@ -73,7 +73,7 @@ export function CarryOverList({ m, compact, ...p }: MeetingProps & { m: Meeting;
 export function PrepList({ m, compact }: { m: Meeting; compact?: boolean }) {
   const [draft, setDraft] = useState('')
   return (
-    <section className={compact ? 'side-block' : 'card'}>
+    <section className={compact ? 'side-block' : 'panel'}>
       <h2>{compact ? '我的会前备注' : '会前备注'}</h2>
       {!compact && <span className="tiny">想问的问题、要带的东西。开会时会显示在记录页旁边，说到了就勾掉。</span>}
       {m.prep.map((item) => (

@@ -12,7 +12,8 @@ import {
 } from '../../lib/meeting'
 import { updateMeeting } from '../../meetings'
 import { CalendarIcon, CopyIcon, PlusIcon, SearchIcon, VideoIcon } from '../../components/Icons'
-import { highlight, searchMeetings, searchTerms } from '../../lib/search'
+import { searchMeetings } from '../../lib/meetingSearch'
+import { highlight } from '../../lib/search'
 import { NOTE_LABEL } from '../../lib/meeting'
 import { toIcs } from '../../lib/ics'
 import { KindBadge, copyText, downloadText, type MeetingProps } from './shared'
@@ -170,7 +171,7 @@ export function ListView(p: MeetingProps & { onOpenActions: () => void }) {
 
         <aside className="split-side">
           {pending.length > 0 && (
-            <section className="card">
+            <section className="panel">
               <h2>待整理纪要 · {pending.length}</h2>
               {pending.slice(0, 5).map((m) => (
                 <div key={m.id} className="card-item">
@@ -196,10 +197,10 @@ export function ListView(p: MeetingProps & { onOpenActions: () => void }) {
               ))}
             </section>
           )}
-          <section className="card">
+          <section className="panel">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2>我负责的会议待办</h2>
-              <button className="link-btn" onClick={p.onOpenActions}>
+              <button className="text-link" onClick={p.onOpenActions}>
                 全部
               </button>
             </div>
@@ -264,10 +265,10 @@ function NextCard({ m, ...p }: MeetingProps & { m: Meeting }) {
   )
 }
 
-function Marked({ text, terms }: { text: string; terms: string[] }) {
+function Marked({ text, query }: { text: string; query: string }) {
   return (
     <>
-      {highlight(text, terms).map((part, i) =>
+      {highlight(text, query).map((part, i) =>
         part.hit ? <mark key={i}>{part.text}</mark> : <span key={i}>{part.text}</span>,
       )}
     </>
@@ -275,7 +276,6 @@ function Marked({ text, terms }: { text: string; terms: string[] }) {
 }
 
 function SearchResults({ query, ...p }: MeetingProps & { query: string }) {
-  const terms = searchTerms(query)
   const hits = searchMeetings(p.meetings, query)
   const count = hits.reduce((n, h) => n + h.notes.length, 0)
   return (
@@ -286,25 +286,25 @@ function SearchResults({ query, ...p }: MeetingProps & { query: string }) {
       {hits.map(({ meeting: m, notes }) => (
         <div key={m.id} className="search-hit">
           <button
-            className="link-btn search-title"
+            className="text-link search-title"
             onClick={() => p.go({ page: notes.length ? 'minutes' : 'detail', id: m.id })}
           >
-            <Marked text={m.title} terms={terms} />
+            <Marked text={m.title} query={query} />
           </button>
           <span className="tiny">
             {longLabel(m.date)} {timeRange(m)}
             {m.location && ' · '}
-            {m.location && <Marked text={m.location} terms={terms} />}
+            {m.location && <Marked text={m.location} query={query} />}
           </span>
           {notes.map((n) => (
             <div key={n.id} className="search-note">
               <span className={'tag tag-' + n.type}>{NOTE_LABEL[n.type]}</span>
               <span>
-                <Marked text={n.text} terms={terms} />
+                <Marked text={n.text} query={query} />
                 {n.owner && (
                   <span className="tiny">
                     {' '}
-                    · <Marked text={n.owner === '我' ? '我负责' : '@' + n.owner} terms={terms} />
+                    · <Marked text={n.owner === '我' ? '我负责' : '@' + n.owner} query={query} />
                   </span>
                 )}
               </span>

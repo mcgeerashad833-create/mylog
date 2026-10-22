@@ -107,7 +107,7 @@ export function MinutesView({ m, ...p }: MeetingProps & { m: Meeting }) {
         </article>
 
         <aside className="split-side">
-          <section className="card">
+          <section className="panel">
             <h2>{m.summarizedAt ? (unsynced ? '有改动还没同步' : '纪要已保存') : '整理好了吗？'}</h2>
             <span className="tiny" style={{ lineHeight: '20px' }}>
               {m.summarizedAt && !unsynced
@@ -123,7 +123,7 @@ export function MinutesView({ m, ...p }: MeetingProps & { m: Meeting }) {
             </button>
           </section>
 
-          <section className="card">
+          <section className="panel">
             <h2>补充腾讯会议的内容</h2>
             <span className="tiny" style={{ lineHeight: '20px' }}>
               粘贴腾讯会议导出的智能纪要文字，自动找出你漏记的决议和待办，确认后合并。
@@ -133,7 +133,7 @@ export function MinutesView({ m, ...p }: MeetingProps & { m: Meeting }) {
             </button>
           </section>
 
-          <section className="card">
+          <section className="panel">
             <h2>复制 / 导出</h2>
             <span className="tiny">需要转给别人时用。</span>
             <div className="btn-row">
