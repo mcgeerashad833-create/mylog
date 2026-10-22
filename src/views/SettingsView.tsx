@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, logout, signIn, syncNow, useSyncState, type SyncState } from '../sync'
 import { ensureNotifyPermission, setRemindersEnabled, useReminderSettings } from '../reminders'
+import { promptInstall, useInstallState } from '../pwa'
 
 interface Session {
   id: number
@@ -40,6 +41,7 @@ export function SettingsView() {
         {sync.email ? <Account sync={sync} /> : <Login />}
       </section>
       <ReminderSettings />
+      <InstallSettings />
     </div>
   )
 }
@@ -329,6 +331,33 @@ function ReminderSettings() {
           )}
         </div>
       )}
+    </section>
+  )
+}
+
+function InstallSettings() {
+  const state = useInstallState()
+  if (state === 'unavailable') return null
+  return (
+    <section aria-labelledby="s-install" style={{ display: 'flex', flexDirection: 'column' }}>
+      <h2 id="s-install" className="group-title" style={{ fontSize: 16 }}>
+        安装
+      </h2>
+      <div className="switch-row">
+        <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span>把 MyLog 装到桌面 / 主屏幕</span>
+          <span className="tiny">
+            {state === 'installed' && '已经安装了。断网也能打开，数据联网后自动同步。'}
+            {state === 'available' && '像普通软件一样从桌面或主屏幕打开，有自己的窗口，断网也能打开。'}
+            {state === 'ios' && '在 Safari 里点底部的「分享」按钮，选「添加到主屏幕」。'}
+          </span>
+        </span>
+        {state === 'available' && (
+          <button className="btn" onClick={() => void promptInstall()}>
+            安装
+          </button>
+        )}
+      </div>
     </section>
   )
 }
