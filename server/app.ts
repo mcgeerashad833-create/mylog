@@ -65,8 +65,11 @@ interface Options {
   /** 打包后的前端目录；存在时一并托管 */
   staticDir?: string
   logger?: boolean
-  /** 部署在 Nginx 等反向代理后面时设为 true，才能拿到真实 IP */
-  trustProxy?: boolean
+  /**
+   * 信任哪些代理转发来的 X-Forwarded-For，例如 'loopback,uniquelocal'。
+   * 不能用 true：那样会信任请求头里的所有地址，用户自己伪造一个 IP 就能绕过登录次数限制。
+   */
+  trustProxy?: string | false
 }
 
 class HttpError extends Error {

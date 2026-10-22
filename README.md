@@ -4,7 +4,7 @@
 
 - 功能设计：[docs/01-功能设计.md](docs/01-功能设计.md)
 - 界面原型：[design/prototype](design/prototype)
-- 会议管理：[功能设计](docs/03-会议管理功能设计.md) · [界面原型](design/meeting-prototype)
+- 会议管理：[功能设计](docs/04-会议管理功能设计.md) · [界面原型](design/meeting-prototype)
 
 前端：React + TypeScript + Vite，数据存在浏览器 IndexedDB，离线可用。服务端：Node.js（Fastify）+ MySQL，负责邮箱登录和多设备同步。
 
@@ -27,7 +27,7 @@ npm test             # 单元测试 + 服务端接口测试（接口测试用 my
 
 ## 部署
 
-云服务器上用 Docker 跑 MyLog，数据存在云数据库（阿里云 RDS、腾讯云 MySQL 等），前面用 Nginx 提供 HTTPS。详见 [docs/02-部署.md](docs/02-部署.md)。
+云服务器上用 Docker 跑 MyLog，数据存在云数据库（阿里云 RDS、腾讯云 MySQL 等），前面用 Nginx 提供 HTTPS。详见 [docs/02-部署.md](docs/02-部署.md)。上线时对照 [docs/03-上线检查清单.md](docs/03-上线检查清单.md) 逐项检查。
 
 ```bash
 cp .env.example .env        # 填云数据库连接串 DATABASE_URL

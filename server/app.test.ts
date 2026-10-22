@@ -83,6 +83,23 @@ describe.skipIf(!available)('服务端', () => {
     expect((await post('secret-123')).statusCode).toBe(429)
   })
 
+  it('伪造 X-Forwarded-For 绕不过登录次数限制', async () => {
+    const proxied = buildApp({ pool, trustProxy: 'loopback,uniquelocal' })
+    await login('spoof@example.com')
+    // 模拟 Nginx 在用户伪造的地址后面追加真实地址，请求来自 Docker 网络里的 Nginx
+    const post = (fake: string, password: string) =>
+      proxied.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        remoteAddress: '172.18.0.1',
+        headers: { 'x-forwarded-for': `${fake}, 203.0.113.9` },
+        payload: { email: 'spoof@example.com', password },
+      })
+    for (let i = 0; i < 10; i++) expect((await post(`6.6.6.${i}`, 'wrong-pass')).statusCode).toBe(401)
+    expect((await post('6.6.6.99', 'secret-123')).statusCode).toBe(429)
+    await proxied.close()
+  })
+
   it('没登录不能同步', async () => {
     const res = await app.inject({ method: 'POST', url: '/api/sync', payload: {} })
     expect(res.statusCode).toBe(401)
