@@ -2,10 +2,20 @@ import { db, type Meeting, type MeetingKind, type MeetingNote, type PrepItem, ty
 import { longLabel, todayKey } from './lib/date'
 import { isMine, taskDateFor, type NoteInput } from './lib/meeting'
 import { seriesToExtend } from './lib/series'
-import { addTask, deleteTask, updateTask } from './store'
+import { addTask, deleteTask, touch, updateTask } from './store'
 
 const uid = () => crypto.randomUUID()
 const now = () => new Date().toISOString()
+
+/**
+ * 自动生成的例会用固定的 id 和一个很早的 updatedAt：
+ * 两台设备各自生成同一次时内容一样、id 一样，同步后不会出现两份；
+ * 任何一台设备上真正改过（包括删掉）的版本都比它新，同步时总是赢。
+ */
+const GENERATED_AT = '2000-01-01T00:00:00.000Z'
+export const occurrenceId = (seriesId: string, date: string) => `${seriesId}_${date}`
+
+const mark = (ids: string[], updatedAt: string) => touch('meetings', ids, updatedAt)
 
 export interface MeetingFields {
   title: string
@@ -40,11 +50,14 @@ export async function addMeeting(f: MeetingFields, prep: string[] = []): Promise
     deletedAt: null,
   }
   await db.meetings.add(m)
+  await mark([id], ts)
   return m
 }
 
 export async function updateMeeting(id: string, patch: Partial<Omit<Meeting, 'id'>>): Promise<void> {
-  await db.meetings.update(id, { ...patch, updatedAt: now() })
+  const ts = now()
+  await db.meetings.update(id, { ...patch, updatedAt: ts })
+  await mark([id], ts)
 }
 
 /** 以后还没开的那几次例会：可以跟着改，也可以直接删掉 */
@@ -65,26 +78,34 @@ export async function editMeeting(m: Meeting, f: MeetingFields, today = todayKey
 
   const future = await futureOccurrences({ ...m, seriesId })
   if (future.length) {
+    const ts = now()
     if (f.repeat === 'none' || f.repeat !== m.repeat || f.date !== m.date) {
-      // 自动生成的、还没开过的会，直接删掉，不留软删除的占位
-      await db.meetings.bulkDelete(future.map((x) => x.id))
+      // 以后还没开过的几次删掉，并脱离这个例会，不占「删掉的那一次」的位置，之后可以重新生成
+      const changes = { deletedAt: ts, seriesId: null, updatedAt: ts }
+      await db.meetings.bulkUpdate(future.map((x) => ({ key: x.id, changes })))
     } else {
       const { date: _date, ...shared } = f
-      const changes = { ...shared, ...(f.start !== m.start ? { remindedAt: null } : {}), updatedAt: now() }
+      const changes = { ...shared, ...(f.start !== m.start ? { remindedAt: null } : {}), updatedAt: ts }
       await db.meetings.bulkUpdate(future.map((x) => ({ key: x.id, changes })))
     }
+    await mark(
+      future.map((x) => x.id),
+      ts,
+    )
   }
   await ensureSeries(today)
 }
 
 /** 例会补建下一次：今天或以后没有的话，按重复方式生成一次 */
 export async function ensureSeries(today = todayKey()): Promise<number> {
-  return db.transaction('rw', db.meetings, async () => {
+  return db.transaction('rw', db.meetings, db.outbox, async () => {
     const todo = seriesToExtend(await db.meetings.toArray(), today)
-    const ts = now()
     for (const { from, date } of todo) {
-      await db.meetings.add({
-        id: uid(),
+      const id = occurrenceId(from.seriesId!, date)
+      // 同一个 id 已经被「改成不重复」删掉过，这次是重新开始的例会：用当前时间，才能盖过那次删除
+      const ts = (await db.meetings.get(id)) ? now() : GENERATED_AT
+      await db.meetings.put({
+        id,
         title: from.title,
         kind: from.kind,
         repeat: from.repeat,
@@ -108,6 +129,7 @@ export async function ensureSeries(today = todayKey()): Promise<number> {
         updatedAt: ts,
         deletedAt: null,
       })
+      await mark([id], ts)
     }
     return todo.length
   })
@@ -133,18 +155,22 @@ export async function endRecording(id: string): Promise<void> {
 
 /** 改记录要读最新的一份再写回，避免两次快速修改互相覆盖 */
 async function editNotes(id: string, fn: (notes: MeetingNote[]) => MeetingNote[]): Promise<void> {
-  await db.transaction('rw', db.meetings, async () => {
+  await db.transaction('rw', db.meetings, db.outbox, async () => {
     const m = await db.meetings.get(id)
     if (!m) return
-    await db.meetings.update(id, { notes: fn(m.notes), updatedAt: now() })
+    const ts = now()
+    await db.meetings.update(id, { notes: fn(m.notes), updatedAt: ts })
+    await mark([id], ts)
   })
 }
 
 async function editPrep(id: string, fn: (prep: PrepItem[]) => PrepItem[]): Promise<void> {
-  await db.transaction('rw', db.meetings, async () => {
+  await db.transaction('rw', db.meetings, db.outbox, async () => {
     const m = await db.meetings.get(id)
     if (!m) return
-    await db.meetings.update(id, { prep: fn(m.prep), updatedAt: now() })
+    const ts = now()
+    await db.meetings.update(id, { prep: fn(m.prep), updatedAt: ts })
+    await mark([id], ts)
   })
 }
 

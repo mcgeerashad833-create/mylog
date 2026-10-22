@@ -16,7 +16,7 @@ const available = await pool
 
 beforeAll(async () => {
   if (!available) return
-  await pool.query('DROP TABLE IF EXISTS tasks, days, sessions, login_codes, users')
+  await pool.query('DROP TABLE IF EXISTS tasks, days, meetings, sessions, login_codes, users')
   await migrate(pool)
   app = buildApp({ pool })
 })
@@ -114,7 +114,51 @@ describe.skipIf(!available)('服务端', () => {
 
     // 游标之后没有新变化时，什么也不返回
     const r6 = await sync(laptop, { cursor: r4.cursor })
-    expect(r6).toEqual({ cursor: r4.cursor, tasks: [], days: [] })
+    expect(r6).toEqual({ cursor: r4.cursor, tasks: [], days: [], meetings: [] })
+  })
+
+  it('会议同步：整场会议（含记录）后写者胜，旧客户端不传会议也照常同步', async () => {
+    const laptop = await login('m@example.com', 'laptop')
+    const phone = await login('m@example.com', 'phone')
+    const meeting = (title: string, updatedAt: string, notes: object[] = []) => ({
+      id: 'm1',
+      title,
+      date: '2026-10-22',
+      notes,
+      updatedAt,
+      deletedAt: null,
+    })
+
+    const r1 = await sync(laptop, { cursor: 0, meetings: [meeting('产品周会', '2026-10-22T01:00:00.000Z')] })
+    expect(r1.meetings).toHaveLength(1)
+
+    const r2 = await sync(phone, { cursor: 0 })
+    expect(r2.meetings.map((m: { title: string }) => m.title)).toEqual(['产品周会'])
+
+    // 手机上记了一条；电脑上更早的改名被丢弃
+    const note = { id: 'n1', type: 'decision', text: '埋点沿用旧版' }
+    await sync(phone, { cursor: r2.cursor, meetings: [meeting('产品周会', '2026-10-22T02:00:00.000Z', [note])] })
+    const r3 = await sync(laptop, { cursor: r1.cursor, meetings: [meeting('周会', '2026-10-22T01:30:00.000Z')] })
+    expect(r3.meetings).toEqual([meeting('产品周会', '2026-10-22T02:00:00.000Z', [note])])
+
+    // 只传任务的旧版本客户端
+    const r4 = await sync(laptop, { cursor: r3.cursor, tasks: [task('t9', '买菜', '2026-10-22T03:00:00.000Z')] })
+    expect(r4.tasks).toHaveLength(1)
+    expect(r4.meetings).toEqual([])
+  })
+
+  it('会议允许比任务大，但也有上限', async () => {
+    const token = await login('big@example.com')
+    const notes = (n: number) => Array.from({ length: n }, (_, i) => ({ id: 'n' + i, text: '一条比较长的会议记录'.repeat(4) }))
+    const post = (count: number) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/sync',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { meetings: [{ id: 'm1', notes: notes(count), updatedAt: '2026-10-22T01:00:00.000Z' }] },
+      })
+    expect((await post(600)).statusCode).toBe(200)
+    expect((await post(10000)).statusCode).toBe(400)
   })
 
   it('账户之间互相看不到数据', async () => {

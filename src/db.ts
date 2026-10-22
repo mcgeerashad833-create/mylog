@@ -47,10 +47,10 @@ export interface Day {
   updatedAt: string
 }
 
-/** 待推送到服务器的改动，key 形如 "tasks:<id>"、"days:<date>" */
+/** 待推送到服务器的改动，key 形如 "tasks:<id>"、"days:<date>"、"meetings:<id>" */
 export interface OutboxEntry {
   key: string
-  table: 'tasks' | 'days'
+  table: 'tasks' | 'days' | 'meetings'
   id: string
   updatedAt: string
 }
@@ -89,7 +89,7 @@ export interface PrepItem {
   done: boolean
 }
 
-/** 会议目前只存在本机，不参与多设备同步 */
+/** 会议整条（含记录、纪要、会前备注）参与多设备同步，后写者胜 */
 export interface Meeting {
   id: string
   title: string

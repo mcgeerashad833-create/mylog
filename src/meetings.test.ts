@@ -1,7 +1,18 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from './db'
-import { addMeeting, addNote, editMeeting, ensureSeries, removeNote, saveMinutes, updateNote, type MeetingFields } from './meetings'
+import {
+  addMeeting,
+  addNote,
+  addPrep,
+  editMeeting,
+  ensureSeries,
+  occurrenceId,
+  removeNote,
+  saveMinutes,
+  updateNote,
+  type MeetingFields,
+} from './meetings'
 import { toggleDone } from './store'
 
 const TODAY = '2026-10-22'
@@ -25,6 +36,7 @@ const todo = (text: string, owner: string | null, due: string | null = null) => 
 beforeEach(async () => {
   await db.tasks.clear()
   await db.meetings.clear()
+  await db.outbox.clear()
 })
 
 describe('saveMinutes', () => {
@@ -140,5 +152,47 @@ describe('例会', () => {
       ['2026-10-15', m.id],
       ['2026-10-29', m.id],
     ])
+  })
+})
+
+describe('多设备同步', () => {
+  const pending = async () => (await db.outbox.toArray()).filter((o) => o.table === 'meetings').map((o) => o.id)
+
+  it('新建、改信息、记录、会前备注都会记进待推送，推送的是最新的修改时间', async () => {
+    const m = await addMeeting(fields)
+    expect(await pending()).toEqual([m.id])
+    await db.outbox.clear()
+
+    await addNote(m.id, todo('甲', '我'), 1)
+    await addPrep(m.id, '带电脑')
+    const entry = await db.outbox.get('meetings:' + m.id)
+    expect(entry?.updatedAt).toBe((await db.meetings.get(m.id))!.updatedAt)
+  })
+
+  it('自动生成的例会：id 固定、修改时间很早，两台设备各自生成也只会有一份', async () => {
+    const m = await addMeeting({ ...fields, date: '2026-10-15', repeat: 'weekly' })
+    await db.outbox.clear()
+    await ensureSeries(TODAY)
+    const next = await db.meetings.get(occurrenceId(m.id, TODAY))
+    expect(next).toMatchObject({ date: TODAY, updatedAt: '2000-01-01T00:00:00.000Z' })
+    expect(await pending()).toEqual([occurrenceId(m.id, TODAY)])
+  })
+
+  it('改成不重复：以后那几次标记删除并脱离例会（能同步到别的设备）；再改回例会会用新的时间重新生成', async () => {
+    const weekly = { ...fields, date: '2026-10-15', repeat: 'weekly' as const }
+    const m = await addMeeting(weekly)
+    await ensureSeries(TODAY)
+    const nextId = occurrenceId(m.id, TODAY)
+
+    await editMeeting((await db.meetings.get(m.id))!, { ...weekly, repeat: 'none' }, TODAY)
+    const removed = (await db.meetings.get(nextId))!
+    expect(removed.deletedAt).not.toBeNull()
+    expect(removed.seriesId).toBeNull()
+    expect(await pending()).toContain(nextId)
+
+    await editMeeting((await db.meetings.get(m.id))!, weekly, TODAY)
+    const back = (await db.meetings.get(nextId))!
+    expect(back.deletedAt).toBeNull()
+    expect(back.updatedAt > removed.updatedAt).toBe(true)
   })
 })
