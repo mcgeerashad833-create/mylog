@@ -1,8 +1,15 @@
 import { db, type Day, type Subtask, type Task } from './db'
 import { todayKey } from './lib/date'
+import { scheduleSync } from './sync'
 
 const uid = () => crypto.randomUUID()
 const now = () => new Date().toISOString()
+
+/** 记下哪些记录改过，等下次同步时推送 */
+async function touch(table: 'tasks' | 'days', ids: string[], updatedAt: string): Promise<void> {
+  await db.outbox.bulkPut(ids.map((id) => ({ key: `${table}:${id}`, table, id, updatedAt })))
+  scheduleSync()
+}
 
 export function isAlive(t: Task): boolean {
   return !t.deletedAt
@@ -42,11 +49,14 @@ export async function addTask(input: NewTask): Promise<Task> {
     deletedAt: null,
   }
   await db.tasks.add(task)
+  await touch('tasks', [task.id], ts)
   return task
 }
 
 export async function updateTask(id: string, patch: Partial<Omit<Task, 'id'>>): Promise<void> {
-  await db.tasks.update(id, { ...patch, updatedAt: now() })
+  const ts = now()
+  await db.tasks.update(id, { ...patch, updatedAt: ts })
+  await touch('tasks', [id], ts)
 }
 
 export async function toggleDone(t: Task): Promise<void> {
@@ -64,12 +74,14 @@ export async function restoreTask(id: string): Promise<void> {
 export async function moveTo(ids: string[], date: string | null): Promise<void> {
   const ts = now()
   await db.tasks.bulkUpdate(ids.map((id) => ({ key: id, changes: { date, updatedAt: ts } })))
+  await touch('tasks', ids, ts)
 }
 
 /** 按拖拽后的新顺序重写 order */
 export async function reorder(ids: string[]): Promise<void> {
   const ts = now()
   await db.tasks.bulkUpdate(ids.map((id, i) => ({ key: id, changes: { order: i, updatedAt: ts } })))
+  await touch('tasks', ids, ts)
 }
 
 export async function setSubtasks(id: string, subtasks: Subtask[]): Promise<void> {
@@ -82,7 +94,9 @@ export function newSubtask(title: string): Subtask {
 
 export async function saveDay(date: string, patch: Partial<Omit<Day, 'date'>>): Promise<void> {
   const prev = await db.days.get(date)
-  await db.days.put({ date, note: '', closedAt: null, ...prev, ...patch, updatedAt: now() })
+  const ts = now()
+  await db.days.put({ date, note: '', closedAt: null, ...prev, ...patch, updatedAt: ts })
+  await touch('days', [date], ts)
 }
 
 // 早间规划每台设备每天只自动弹一次，属于本机偏好，存 localStorage 即可

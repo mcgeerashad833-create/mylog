@@ -38,9 +38,18 @@ export interface Day {
   updatedAt: string
 }
 
+/** 待推送到服务器的改动，key 形如 "tasks:<id>"、"days:<date>" */
+export interface OutboxEntry {
+  key: string
+  table: 'tasks' | 'days'
+  id: string
+  updatedAt: string
+}
+
 export const db = new Dexie('mylog') as Dexie & {
   tasks: EntityTable<Task, 'id'>
   days: EntityTable<Day, 'date'>
+  outbox: EntityTable<OutboxEntry, 'key'>
 }
 
 db.version(1).stores({
@@ -50,4 +59,10 @@ db.version(1).stores({
 db.version(2).stores({
   tasks: 'id, date, done, updatedAt',
   days: 'date, updatedAt',
+})
+
+db.version(3).stores({
+  tasks: 'id, date, done, updatedAt',
+  days: 'date, updatedAt',
+  outbox: 'key',
 })

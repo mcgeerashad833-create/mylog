@@ -7,9 +7,11 @@ import { DetailDrawer } from './components/DetailDrawer'
 import { BookIcon, CalendarIcon, InboxIcon, SunIcon } from './components/Icons'
 import { InboxView, LaterView, TodayView, selectToday, type ViewProps } from './views/views'
 import { LogView } from './views/LogView'
+import { SettingsView, syncLabel } from './views/SettingsView'
+import { startAutoSync, useSyncState } from './sync'
 import { PlanDialog, planQueue } from './views/PlanDialog'
 
-type View = 'today' | 'inbox' | 'later' | 'log'
+type View = 'today' | 'inbox' | 'later' | 'log' | 'settings'
 
 interface Toast {
   text: string
@@ -35,6 +37,9 @@ export function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const sync = useSyncState()
+
+  useEffect(() => startAutoSync(), [])
   const selected = tasks.find((t) => t.id === selectedId) ?? null
 
   // 每天第一次打开时，有遗留或收集箱里有事，就弹出早间规划
@@ -74,6 +79,7 @@ export function App() {
     inbox: tasks.filter((t) => !t.done && t.date === null).length,
     later: tasks.filter((t) => !t.done && t.date !== null && t.date > today).length,
     log: 0,
+    settings: 0,
   }
 
   const props: ViewProps = {
@@ -111,13 +117,26 @@ export function App() {
             {counts[id] > 0 && <span className="count">{counts[id]}</span>}
           </button>
         ))}
-        <div className="sidebar-foot">数据保存在本机 · 多设备同步开发中</div>
+        <button
+          className="sidebar-foot"
+          aria-current={view === 'settings' ? 'page' : undefined}
+          onClick={() => setView('settings')}
+        >
+          {sync.email && (
+            <span
+              className={'state-dot ' + (sync.status === 'idle' ? 'ok' : sync.status === 'syncing' ? '' : 'bad')}
+              aria-hidden="true"
+            />
+          )}
+          {sync.email ? syncLabel(sync) : '数据只在本机 · 登录以同步'}
+        </button>
       </nav>
 
       <main className="main">
         {view === 'today' && <TodayView {...props} />}
         {view === 'inbox' && <InboxView {...props} />}
         {view === 'later' && <LaterView {...props} />}
+        {view === 'settings' && <SettingsView />}
         {view === 'log' && <LogView tasks={tasks} today={today} onOpen={props.onOpen} onNotice={notice} />}
       </main>
 
