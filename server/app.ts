@@ -1,12 +1,11 @@
-import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual, type BinaryLike } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify'
 import fastifyStatic from '@fastify/static'
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise'
 import type { Pool } from './db.ts'
+import { DUMMY_HASH, PASSWORD_MAX, PASSWORD_MIN, hashPassword, normalizeEmail, verifyPassword } from './users.ts'
 
-const PASSWORD_MIN = 8
-const PASSWORD_MAX = 128
 const LOGIN_MAX_FAILURES = 10
 const LOGIN_WINDOW_MS = 15 * 60 * 1000
 /** 一台设备连续这么久没用，登录就失效，需要重新输入密码 */
@@ -16,31 +15,11 @@ const MAX_RECORD_BYTES = 64 * 1024
 /** 一场会议带着全部记录，允许大一些 */
 const MAX_MEETING_BYTES = 512 * 1024
 
-const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/
 const ID_RE = /^[\w-]{1,64}$/
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex')
-
-const scrypt = (pw: BinaryLike, salt: BinaryLike) =>
-  new Promise<Buffer>((resolve, reject) => scryptCb(pw, salt, 32, (err, key) => (err ? reject(err) : resolve(key))))
-
-/** 存储格式：scrypt$<salt hex>$<hash hex> */
-export async function hashPassword(pw: string): Promise<string> {
-  const salt = randomBytes(16)
-  return `scrypt$${salt.toString('hex')}$${(await scrypt(pw, salt)).toString('hex')}`
-}
-
-export async function verifyPassword(pw: string, stored: string): Promise<boolean> {
-  const [algo, salt, hash] = stored.split('$')
-  if (algo !== 'scrypt' || !salt || !hash) return false
-  const key = await scrypt(pw, Buffer.from(salt, 'hex'))
-  const expected = Buffer.from(hash, 'hex')
-  return key.length === expected.length && timingSafeEqual(key, expected)
-}
-
-const DUMMY_HASH = `scrypt$${'0'.repeat(32)}$${'0'.repeat(64)}`
 
 /** 登录失败计数（按邮箱 + IP），单进程内存即可 */
 function failureCounter() {
@@ -112,8 +91,8 @@ export function buildApp({ pool, staticDir, logger = false, trustProxy = false }
   }
 
   function normEmail(v: unknown): string {
-    const email = typeof v === 'string' ? v.trim().toLowerCase() : ''
-    if (!EMAIL_RE.test(email)) throw new HttpError(400, '邮箱格式不对')
+    const email = normalizeEmail(v)
+    if (!email) throw new HttpError(400, '邮箱格式不对')
     return email
   }
 
@@ -134,27 +113,6 @@ export function buildApp({ pool, staticDir, logger = false, trustProxy = false }
     await pool.query('INSERT INTO sessions (token_hash, user_id, device) VALUES (?, ?, ?)', [sha256(token), userId, device])
     return token
   }
-
-  app.post('/api/auth/register', async (req) => {
-    const { email, password, device } = readCredentials(req.body)
-    if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) {
-      throw new HttpError(400, `密码需要 ${PASSWORD_MIN}–${PASSWORD_MAX} 位`)
-    }
-    const hash = await hashPassword(password)
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT id, password_hash FROM users WHERE email = ?', [email])
-    let userId: number
-    if (!rows.length) {
-      const [res] = await pool.query<ResultSetHeader>('INSERT INTO users (email, password_hash) VALUES (?, ?)', [email, hash])
-      userId = res.insertId
-    } else if (rows[0].password_hash === '') {
-      // 早期验证码版本留下的账户还没有密码，允许补设一次
-      await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [hash, rows[0].id])
-      userId = rows[0].id
-    } else {
-      throw new HttpError(409, '这个邮箱已经注册过了，请直接登录')
-    }
-    return { token: await createSession(userId, device), email }
-  })
 
   app.post('/api/auth/login', async (req) => {
     const { email, password, device } = readCredentials(req.body)

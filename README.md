@@ -6,7 +6,9 @@
 - 界面原型：[design/prototype](design/prototype)
 - 会议管理：[功能设计](docs/04-会议管理功能设计.md) · [界面原型](design/meeting-prototype)
 
-前端：React + TypeScript + Vite，数据存在浏览器 IndexedDB；是可安装的网页应用（PWA），可以装到电脑桌面或手机主屏幕，断网也能打开。服务端：Node.js（Fastify）+ MySQL，负责邮箱登录和多设备同步。
+必须登录才能用，数据都存在服务器上（MySQL），浏览器里只是缓存（IndexedDB），让页面打开快、断网时还能看和记。**账号只能由管理员在服务器上创建**，应用里没有注册入口，见 [部署指南 · 创建账号](docs/02-部署.md#6-创建账号)。
+
+前端：React + TypeScript + Vite，可安装的网页应用（PWA）。服务端：Node.js（Fastify）+ MySQL。
 
 ## 开发
 
@@ -21,6 +23,7 @@ mysql -uroot -e "CREATE DATABASE mylog CHARACTER SET utf8mb4;
   GRANT ALL ON mylog.* TO 'mylog'@'localhost';"
 
 npm run dev:server   # 服务端 http://127.0.0.1:8787
+node server/admin.ts add-user you@example.com   # 建一个本地账号（打印出密码），才能登录
 npm run dev          # 前端 http://localhost:5173，/api 自动转发到服务端
 npm test             # 单元测试 + 服务端接口测试（接口测试用 mylog_test 库，连不上会跳过）
 ```
@@ -51,7 +54,7 @@ docker compose up -d --build
 - [x] 之前遗留：全部移到今天 / 逐条处理
 - [x] 收集箱、以后（按日期分组）
 - [x] 任务详情：标题、重要、日期、时间、标签、子步骤、备注、删除（可撤销）
-- [x] 账户与多设备同步（邮箱 + 密码登录，MySQL；可修改密码，改后其他设备退出；30 天不用自动退出登录）
+- [x] 账号与多设备同步（必须登录，账号由管理员用 `server/admin.ts` 创建 / 重置密码；可修改密码，改后其他设备退出；30 天不用自动退出登录）
 - [x] 早间规划（每天首次打开自动弹出，键盘 1/2/3 快速决定）
 - [x] 日志：每天的完成记录、最近 7 天、晚间收尾与一句话总结
 - [x] 重复任务（每天 / 工作日 / 每周几 / 每月几号，完成后自动生成下一次）
