@@ -4,6 +4,7 @@
 
 - 功能设计：[docs/01-功能设计.md](docs/01-功能设计.md)
 - 界面原型：[design/prototype](design/prototype)
+- 会议管理（设计中）：[功能设计](docs/02-会议管理功能设计.md) · [界面原型](design/meeting-prototype)
 
 ## 开发
 

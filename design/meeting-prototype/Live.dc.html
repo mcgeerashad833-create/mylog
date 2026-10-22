@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>MyLog · 会中记录</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#3A5CCC}a:hover{color:#2B479F}
+button,input{font-family:inherit}
+input::placeholder{color:#8A9099}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-direction: column; background: #FFFFFF; color: #1F2328; font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; font-size: 14px">
+
+  <header style="display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap; padding: 14px 28px; border-bottom: 1px solid #ECECE9">
+    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap">
+      <a href="Prep.dc.html" style="font-size: 13px; text-decoration: none">‹ 会议详情</a>
+      <span style="font-size: 17px; font-weight: 600">产品周会</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 12px; background: #FDECEA; color: #B3261E; font-size: 12px">
+        <span style="width: 6px; height: 6px; border-radius: 3px; background: #B3261E"></span>记录中
+      </span>
+      <span style="font-size: 13px; color: #5E6670; font-variant-numeric: tabular-nums">已开 {{elapsed}} / 60:00</span>
+    </div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+      <a href="https://meeting.tencent.com/" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid #E1E3E8; border-radius: 8px; color: #1F2328; text-decoration: none; font-size: 13px">回到腾讯会议</a>
+      <a href="Minutes.dc.html" style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 8px; background: #3A5CCC; color: #FFFFFF; text-decoration: none; font-size: 13px; font-weight: 500">结束会议 · 生成纪要</a>
+    </div>
+  </header>
+
+  <div style="flex: 1; display: flex; flex-wrap: wrap; align-items: stretch">
+
+    <aside style="flex: 1 1 260px; box-sizing: border-box; padding: 24px 20px; background: #F7F7F5; border-right: 1px solid #ECECE9; display: flex; flex-direction: column; gap: 24px">
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #5E6670">议程</h2>
+        <sc-for list="{{agenda}}" as="a" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 10px; background: {{a.bg}}; border: 1px solid {{a.border}}">
+            <div style="display: flex; align-items: center; gap: 8px">
+              <span style="width: 20px; height: 20px; flex: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 12px; background: {{a.dotBg}}; color: {{a.dotFg}}">{{a.mark}}</span>
+              <span style="flex: 1; font-weight: {{a.weight}}; color: {{a.fg}}">{{a.title}}</span>
+            </div>
+            <span style="font-size: 12px; font-variant-numeric: tabular-nums; color: {{a.timeFg}}; padding-left: 28px">{{a.timeText}}</span>
+            <sc-if value="{{a.isCurrent}}" hint-placeholder-val="{{ false }}">
+              <div style="margin-left: 28px; height: 4px; background: #E1E3E8; border-radius: 2px; overflow: hidden">
+                <div style="height: 4px; width: {{a.pct}}; background: {{a.barColor}}"></div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+        <button type="button" onClick="{{next}}" disabled="{{atEnd}}" style="height: 40px; margin-top: 4px; border: 1px solid #E1E3E8; background: #FFFFFF; border-radius: 8px; color: #1F2328; font-size: 13px; cursor: pointer">{{nextLabel}}</button>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #5E6670">签到 · 到场 {{presentCount}} / 6</h2>
+        <sc-for list="{{people}}" as="p" hint-placeholder-count="6">
+          <div style="display: flex; align-items: center; gap: 8px; min-height: 36px">
+            <span style="flex: 1">{{p.name}}</span>
+            <span style="font-size: 12px; color: {{p.whereFg}}">{{p.where}}</span>
+            <button type="button" aria-pressed="{{p.pressed}}" aria-label="{{p.aria}}" onClick="{{p.toggle}}" style="height: 30px; min-width: 52px; padding: 0 8px; border-radius: 15px; font-size: 12px; cursor: pointer; border: 1px solid {{p.btnBorder}}; background: {{p.btnBg}}; color: {{p.btnFg}}">{{p.state}}</button>
+          </div>
+        </sc-for>
+      </section>
+    </aside>
+
+    <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 24px; display: flex; flex-direction: column; gap: 20px">
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 24px; max-width: 760px; width: 100%; align-self: center">
+        <sc-for list="{{sections}}" as="s" hint-placeholder-count="2">
+          <section style="display: flex; flex-direction: column; gap: 10px">
+            <h2 style="margin: 0; font-size: 15px; font-weight: 600; color: {{s.fg}}">{{s.title}}</h2>
+            <sc-if value="{{s.empty}}" hint-placeholder-val="{{ false }}">
+              <span style="font-size: 13px; color: #5E6670">还没有记录，在下面输入。</span>
+            </sc-if>
+            <sc-for list="{{s.entries}}" as="e" hint-placeholder-count="3">
+              <div style="display: flex; align-items: flex-start; gap: 12px; padding: 4px 0">
+                <span style="flex: none; width: 40px; height: 22px; border-radius: 11px; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; background: {{e.tagBg}}; color: {{e.tagFg}}">{{e.label}}</span>
+                <span style="flex: 1; line-height: 22px; display: flex; flex-wrap: wrap; gap: 4px 10px">
+                  <span>{{e.text}}</span>
+                  <sc-if value="{{e.hasMeta}}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 12px; color: #2B479F">{{e.meta}}</span>
+                  </sc-if>
+                </span>
+              </div>
+            </sc-for>
+          </section>
+        </sc-for>
+      </div>
+
+      <div style="max-width: 760px; width: 100%; align-self: center; box-sizing: border-box; border: 1px solid #D5DCF2; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: #FFFFFF">
+        <div role="group" aria-label="记录类型" style="display: flex; gap: 6px; flex-wrap: wrap">
+          <sc-for list="{{types}}" as="t" hint-placeholder-count="4">
+            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="height: 32px; padding: 0 12px; border-radius: 16px; font-size: 13px; cursor: pointer; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 8px">
+          <label for="draft" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">记录内容</label>
+          <input id="draft" value="{{draft}}" onChange="{{onDraft}}" onKeyDown="{{onKey}}" placeholder="{{placeholder}}" style="flex: 1; min-width: 0; height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid #E1E3E8; border-radius: 8px; font-size: 14px; color: #1F2328">
+          <button type="button" onClick="{{add}}" style="height: 44px; padding: 0 18px; border: 0; border-radius: 8px; background: #3A5CCC; color: #FFFFFF; font-size: 14px; font-weight: 500; cursor: pointer">记下</button>
+        </div>
+        <span style="font-size: 12px; color: #5E6670">回车记下。也可以用「决：」「待：」「问：」开头；待办里写 @某人 和「周五前」会自动识别负责人和截止日期。</span>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      current: 1,
+      itemSecs: 504,
+      totalSecs: 1104,
+      used: [600, 0, 0],
+      type: 'note',
+      draft: '',
+      entries: [
+        { sec: 0, type: 'note', text: '数据口径还差两个指标没对齐，本周内补齐' },
+        { sec: 0, type: 'decision', text: '埋点方案沿用旧版，不再单独评审' },
+        { sec: 1, type: 'note', text: '张伟讲了 v3 方案：首屏改为个性化推荐' },
+        { sec: 1, type: 'question', text: '推荐位的冷启动怎么处理？' },
+        { sec: 1, type: 'todo', text: '出一版冷启动兜底方案', owner: '李娜', due: '周五前' }
+      ],
+      present: { '我': true, '张伟': true, '李娜': true, '陈杰': false }
+    };
+  }
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      this.setState({ itemSecs: this.state.itemSecs + 1, totalSecs: this.state.totalSecs + 1 });
+    }, 1000);
+  }
+  componentWillUnmount() {
+    clearInterval(this.timer);
+  }
+  addEntry() {
+    let text = this.state.draft.trim();
+    if (!text) return;
+    let type = this.state.type;
+    const prefix = { '决': 'decision', '待': 'todo', '问': 'question' };
+    const m = text.match(/^([决待问])[:：]\s*/);
+    if (m) { type = prefix[m[1]]; text = text.slice(m[0].length); }
+    const entry = { sec: this.state.current, type, text };
+    if (type === 'todo') {
+      const who = text.match(/@(\S+)/);
+      const due = text.match(/(今天|明天|后天|周[一二三四五六日天])前?/);
+      if (who) { entry.owner = who[1]; text = text.replace(who[0], ''); }
+      if (due) { entry.due = due[0]; text = text.replace(due[0], ''); }
+      entry.text = text.replace(/\s+/g, ' ').trim();
+    }
+    this.setState({ entries: this.state.entries.concat([entry]), draft: '' });
+  }
+  renderVals() {
+    const fmt = (s) => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    const plan = [
+      { title: '上次待办回顾', mins: 10 },
+      { title: '新版首页方案', mins: 30 },
+      { title: '下周排期', mins: 15 }
+    ];
+    const cur = this.state.current;
+    const agenda = plan.map((p, i) => {
+      const done = i < cur;
+      const isCurrent = i === cur;
+      const over = isCurrent && this.state.itemSecs > p.mins * 60;
+      const usedSecs = done ? this.state.used[i] : isCurrent ? this.state.itemSecs : 0;
+      return {
+        title: p.title,
+        isCurrent,
+        mark: done ? '✓' : String(i + 1),
+        dotBg: done ? '#2F7D4F' : isCurrent ? '#3A5CCC' : '#E1E3E8',
+        dotFg: done || isCurrent ? '#FFFFFF' : '#3F4650',
+        bg: isCurrent ? '#FFFFFF' : 'transparent',
+        border: isCurrent ? '#D5DCF2' : 'transparent',
+        weight: isCurrent ? '600' : '400',
+        fg: done ? '#5E6670' : '#1F2328',
+        timeText: done ? '用时 ' + fmt(usedSecs) : isCurrent ? fmt(usedSecs) + ' / ' + p.mins + ':00' + (over ? ' · 已超时' : '') : '预计 ' + p.mins + ' 分钟',
+        timeFg: over ? '#B25E09' : '#5E6670',
+        pct: Math.min(100, Math.round(usedSecs / (p.mins * 60) * 100)) + '%',
+        barColor: over ? '#B25E09' : '#3A5CCC'
+      };
+    });
+    const tagStyle = {
+      note: { label: '笔记', tagBg: '#F1F2F4', tagFg: '#3F4650' },
+      decision: { label: '决议', tagBg: '#E6F2EA', tagFg: '#22663F' },
+      todo: { label: '待办', tagBg: '#E9EDF8', tagFg: '#2B479F' },
+      question: { label: '问题', tagBg: '#FBEFE3', tagFg: '#8A4B12' }
+    };
+    const sections = plan.slice(0, cur + 1).map((p, i) => {
+      const entries = this.state.entries.filter((e) => e.sec === i).map((e) => {
+        const meta = [e.owner ? '@' + e.owner : '', e.due || ''].filter(Boolean).join(' · ');
+        return Object.assign({ text: e.text, meta, hasMeta: !!meta }, tagStyle[e.type]);
+      });
+      return { title: (i + 1) + '. ' + p.title, fg: i === cur ? '#1F2328' : '#5E6670', entries, empty: entries.length === 0 };
+    });
+    const types = ['note', 'decision', 'todo', 'question'].map((id) => {
+      const on = this.state.type === id;
+      return {
+        label: tagStyle[id].label,
+        pressed: String(on),
+        bg: on ? tagStyle[id].tagBg : '#FFFFFF',
+        fg: on ? tagStyle[id].tagFg : '#3F4650',
+        border: on ? tagStyle[id].tagFg : '#E1E3E8',
+        pick: () => this.setState({ type: id })
+      };
+    });
+    const placeholders = {
+      note: '记一笔…',
+      decision: '这件事定了什么？',
+      todo: '要做什么 @负责人 截止时间，例如：改首页文案 @张伟 周三前',
+      question: '还没解决的问题…'
+    };
+    const roster = [
+      { name: '我', where: '会议室' }, { name: '张伟', where: '会议室' }, { name: '李娜', where: '会议室' },
+      { name: '王强', where: '腾讯会议' }, { name: '赵敏', where: '腾讯会议' }, { name: '陈杰', where: '会议室' }
+    ];
+    const people = roster.map((r) => {
+      const online = r.where === '腾讯会议';
+      const here = online || !!this.state.present[r.name];
+      return {
+        name: r.name,
+        where: r.where,
+        whereFg: online ? '#2B479F' : '#8A4B12',
+        state: here ? '已到' : '未到',
+        pressed: String(here),
+        aria: r.name + (here ? ' 已到' : ' 未到'),
+        btnBg: here ? '#E6F2EA' : '#FFFFFF',
+        btnFg: here ? '#22663F' : '#5E6670',
+        btnBorder: here ? '#B9DCC5' : '#E1E3E8',
+        toggle: () => {
+          if (online) return;
+          this.setState({ present: Object.assign({}, this.state.present, { [r.name]: !this.state.present[r.name] }) });
+        }
+      };
+    });
+    const atEnd = cur >= plan.length - 1;
+    return {
+      elapsed: fmt(this.state.totalSecs),
+      agenda,
+      sections,
+      types,
+      people,
+      presentCount: people.filter((p) => p.state === '已到').length,
+      draft: this.state.draft,
+      placeholder: placeholders[this.state.type],
+      atEnd,
+      nextLabel: atEnd ? '已是最后一项' : '下一项：' + plan[cur + 1].title,
+      onDraft: (e) => this.setState({ draft: e.target.value }),
+      onKey: (e) => { if (e.key === 'Enter') this.addEntry(); },
+      add: () => this.addEntry(),
+      next: () => {
+        if (atEnd) return;
+        const used = this.state.used.slice();
+        used[cur] = this.state.itemSecs;
+        this.setState({ current: cur + 1, itemSecs: 0, used });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

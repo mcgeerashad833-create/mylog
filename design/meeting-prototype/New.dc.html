@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>MyLog · 新建会议</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#3A5CCC}a:hover{color:#2B479F}
+button,input,textarea,select{font-family:inherit}
+input::placeholder,textarea::placeholder{color:#8A9099}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-wrap: wrap; background: #FFFFFF; color: #1F2328; font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; font-size: 14px">
+
+  <nav aria-label="主导航" style="flex: 1 1 220px; box-sizing: border-box; background: #F7F7F5; border-right: 1px solid #ECECE9; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px">
+    <div style="padding: 4px 10px 16px; font-size: 17px; font-weight: 600">MyLog</div>
+    <a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none"><span style="flex: 1">今天</span><span style="color: #5E6670; font-size: 13px">7</span></a>
+    <a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none"><span style="flex: 1">收集箱</span><span style="color: #5E6670; font-size: 13px">4</span></a>
+    <a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none"><span style="flex: 1">以后</span><span style="color: #5E6670; font-size: 13px">11</span></a>
+    <div style="padding: 20px 10px 6px; font-size: 12px; color: #5E6670; font-weight: 500">会议</div>
+    <a href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; background: #E9EDF8; color: #1F2328; text-decoration: none; font-weight: 500"><span style="flex: 1">会议日程</span><span style="color: #5E6670; font-size: 13px">3</span></a>
+    <a href="Actions.dc.html" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none"><span style="flex: 1">会议待办</span><span style="color: #5E6670; font-size: 13px">5</span></a>
+    <a href="Minutes.dc.html" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none"><span style="flex: 1">纪要</span></a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px 32px 64px; display: flex; justify-content: center">
+    <div style="width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 24px">
+
+      <header style="display: flex; flex-direction: column; gap: 8px">
+        <a href="Main.dc.html" style="font-size: 13px; text-decoration: none; align-self: flex-start">‹ 会议日程</a>
+        <h1 style="margin: 0; font-size: 28px; font-weight: 600; line-height: 36px">新建会议</h1>
+      </header>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span id="kind-label" style="font-size: 13px; color: #5E6670">怎么开</span>
+        <div role="group" aria-labelledby="kind-label" style="display: flex; gap: 8px; flex-wrap: wrap">
+          <sc-for list="{{kinds}}" as="k" hint-placeholder-count="3">
+            <button type="button" aria-pressed="{{k.pressed}}" onClick="{{k.pick}}" style="height: 44px; padding: 0 18px; border-radius: 8px; font-size: 14px; cursor: pointer; border: 1px solid {{k.border}}; background: {{k.bg}}; color: #1F2328; font-weight: {{k.weight}}">{{k.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{showPaste}}" hint-placeholder-val="{{ true }}">
+        <section style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; background: #F7F7F5; border-radius: 12px">
+          <label for="invite" style="font-weight: 600">粘贴腾讯会议邀请，自动识别</label>
+          <span style="font-size: 13px; color: #5E6670">在腾讯会议或微信里复制整段邀请文字，粘贴到这里。</span>
+          <textarea id="invite" key="{{inviteKey}}" rows="8" defaultValue="{{invite}}" style="box-sizing: border-box; width: 100%; padding: 12px 14px; border: 1px solid #E1E3E8; border-radius: 8px; background: #FFFFFF; font-size: 13px; line-height: 21px; color: #3F4650; resize: vertical"></textarea>
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+            <button type="button" onClick="{{parse}}" style="height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #3A5CCC; color: #FFFFFF; font-size: 13px; font-weight: 500; cursor: pointer">识别</button>
+            <button type="button" onClick="{{reset}}" style="height: 40px; padding: 0 14px; border: 1px solid #E1E3E8; border-radius: 8px; background: #FFFFFF; color: #1F2328; font-size: 13px; cursor: pointer">清空</button>
+            <sc-if value="{{parsed}}" hint-placeholder-val="{{ true }}">
+              <span role="status" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #2F7D4F">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"></path></svg>
+                已识别 {{recognizedCount}} 项，请核对下方信息
+              </span>
+            </sc-if>
+          </div>
+        </section>
+      </sc-if>
+
+      <section style="display: flex; flex-direction: column; gap: 14px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">会议信息</h2>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px">
+          <sc-for list="{{fields}}" as="f" hint-placeholder-count="6">
+            <div style="display: flex; flex-direction: column; gap: 6px; grid-column: {{f.span}}">
+              <label for="{{f.id}}" style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #3F4650">
+                {{f.label}}
+                <sc-if value="{{f.recognized}}" hint-placeholder-val="{{ false }}">
+                  <span style="height: 18px; padding: 0 6px; border-radius: 9px; background: #E9EDF8; color: #2B479F; font-size: 11px; display: inline-flex; align-items: center">已识别</span>
+                </sc-if>
+              </label>
+              <input id="{{f.id}}" key="{{f.key}}" defaultValue="{{f.value}}" placeholder="{{f.placeholder}}" style="box-sizing: border-box; height: 44px; padding: 0 12px; border: 1px solid {{f.border}}; border-radius: 8px; background: {{f.bg}}; font-size: 14px; color: #1F2328; width: 100%">
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600">议程</h2>
+          <span style="font-size: 13px; color: #5E6670">合计 55 / 60 分钟</span>
+        </div>
+        <div style="display: flex; flex-direction: column; border: 1px solid #ECECE9; border-radius: 10px">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #F0F1F3">
+            <span style="width: 20px; color: #5E6670">1</span><span style="flex: 1">供应商介绍方案</span><span style="color: #5E6670; font-size: 13px">供应商</span><span style="width: 56px; text-align: right; font-size: 13px">20 分钟</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #F0F1F3">
+            <span style="width: 20px; color: #5E6670">2</span><span style="flex: 1">问题与报价讨论</span><span style="color: #5E6670; font-size: 13px">我</span><span style="width: 56px; text-align: right; font-size: 13px">25 分钟</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px">
+            <span style="width: 20px; color: #5E6670">3</span><span style="flex: 1">下一步与分工</span><span style="color: #5E6670; font-size: 13px">我</span><span style="width: 56px; text-align: right; font-size: 13px">10 分钟</span>
+          </div>
+        </div>
+        <button type="button" style="align-self: flex-start; height: 36px; padding: 0 12px; border: 0; background: transparent; color: #3A5CCC; font-size: 13px; cursor: pointer">+ 添加议程项</button>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 10px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">提醒与重复</h2>
+        <label style="display: flex; align-items: center; gap: 10px; min-height: 36px">
+          <input type="checkbox" defaultChecked="{{ true }}" style="width: 18px; height: 18px; accent-color: #3A5CCC">
+          会前 {{remindMin}} 分钟提醒我{{remindHint}}
+        </label>
+        <label style="display: flex; align-items: center; gap: 10px; min-height: 36px">
+          <input type="checkbox" defaultChecked="{{ true }}" style="width: 18px; height: 18px; accent-color: #3A5CCC">
+          会后 30 分钟还没整理纪要时提醒我
+        </label>
+        <label style="display: flex; align-items: center; gap: 10px; min-height: 36px">
+          <input type="checkbox" style="width: 18px; height: 18px; accent-color: #3A5CCC">
+          这是例会（每周 / 每两周重复，待办自动延续到下一次）
+        </label>
+      </section>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid #ECECE9">
+        <a href="Main.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border: 1px solid #E1E3E8; border-radius: 8px; color: #1F2328; text-decoration: none">取消</a>
+        <a href="Prep.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 22px; border-radius: 8px; background: #3A5CCC; color: #FFFFFF; text-decoration: none; font-weight: 500">保存会议</a>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { kind: 'online', parsed: true, round: 0 };
+  }
+  renderVals() {
+    const kind = this.state.kind;
+    const parsed = this.state.parsed && kind !== 'offline';
+    const all = {
+      title: { label: '会议主题', value: '供应商方案评审', placeholder: '例如：产品周会', span: 'span 2', fromInvite: true },
+      date: { label: '日期', value: '10月22日 周四', placeholder: '例如：明天', span: 'auto', fromInvite: true },
+      time: { label: '时间', value: '14:00 – 15:00', placeholder: '例如：下午 2 点，1 小时', span: 'auto', fromInvite: true },
+      room: { label: '地点 / 会议室', value: '', placeholder: '例如：3 楼 小会议室', span: 'span 2', fromInvite: false },
+      no: { label: '腾讯会议号', value: '456 789 123', placeholder: '9 位会议号', span: 'auto', fromInvite: true },
+      pwd: { label: '会议密码', value: '2468', placeholder: '没有可不填', span: 'auto', fromInvite: true },
+      link: { label: '入会链接', value: 'https://meeting.tencent.com/dm/[会议链接]', placeholder: 'https://meeting.tencent.com/…', span: 'span 2', fromInvite: true }
+    };
+    const order = {
+      online: ['title', 'date', 'time', 'no', 'pwd', 'link'],
+      offline: ['title', 'date', 'time', 'room'],
+      hybrid: ['title', 'date', 'time', 'room', 'no', 'pwd', 'link']
+    }[kind];
+    const fields = order.map((id) => {
+      const f = all[id];
+      const recognized = parsed && f.fromInvite;
+      return {
+        id: 'f-' + id,
+        key: id + '-' + kind + '-' + this.state.parsed + '-' + this.state.round,
+        label: f.label,
+        span: f.span,
+        value: recognized ? f.value : '',
+        placeholder: f.placeholder,
+        recognized,
+        bg: recognized ? '#F6F8FD' : '#FFFFFF',
+        border: recognized ? '#C9D3F0' : '#E1E3E8'
+      };
+    });
+    const kinds = [
+      { id: 'online', label: '腾讯会议' },
+      { id: 'offline', label: '线下' },
+      { id: 'hybrid', label: '混合（线下 + 腾讯会议）' }
+    ].map((k) => ({
+      label: k.label,
+      pressed: String(k.id === kind),
+      bg: k.id === kind ? '#E9EDF8' : '#FFFFFF',
+      border: k.id === kind ? '#3A5CCC' : '#E1E3E8',
+      weight: k.id === kind ? '600' : '400',
+      pick: () => this.setState({ kind: k.id })
+    }));
+    const invite = this.state.parsed || this.state.round === 0
+      ? '[你的名字] 邀请您参加腾讯会议\n会议主题：供应商方案评审\n会议时间：2026/10/22 14:00-15:00 (GMT+08:00) 中国标准时间 - 北京\n\n点击链接入会，或添加至会议列表：\nhttps://meeting.tencent.com/dm/[会议链接]\n\n#腾讯会议：456-789-123\n会议密码：2468'
+      : '';
+    return {
+      kinds,
+      fields,
+      showPaste: kind !== 'offline',
+      parsed,
+      invite,
+      inviteKey: 'invite-' + this.state.round,
+      recognizedCount: fields.filter((f) => f.recognized).length,
+      remindMin: kind === 'offline' ? 15 : 10,
+      remindHint: kind === 'offline' ? '（线下会议多留 5 分钟走过去）' : '，提醒里带入会按钮',
+      parse: () => this.setState({ parsed: true, round: this.state.round + 1 }),
+      reset: () => this.setState({ parsed: false, round: this.state.round + 1 })
+    };
+  }
+}
+</script>
+</body>
+</html>

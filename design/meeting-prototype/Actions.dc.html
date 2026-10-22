@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>MyLog · 会议待办</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#3A5CCC}a:hover{color:#2B479F}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-wrap: wrap; background: #FFFFFF; color: #1F2328; font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; font-size: 14px">
+
+  <nav aria-label="主导航" style="flex: 1 1 220px; box-sizing: border-box; background: #F7F7F5; border-right: 1px solid #ECECE9; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px">
+    <div style="padding: 4px 10px 16px; font-size: 17px; font-weight: 600">MyLog</div>
+    <a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none"><span style="flex: 1">今天</span><span style="color: #5E6670; font-size: 13px">8</span></a>
+    <a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none"><span style="flex: 1">收集箱</span><span style="color: #5E6670; font-size: 13px">4</span></a>
+    <a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none"><span style="flex: 1">以后</span><span style="color: #5E6670; font-size: 13px">12</span></a>
+    <div style="padding: 20px 10px 6px; font-size: 12px; color: #5E6670; font-weight: 500">会议</div>
+    <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none"><span style="flex: 1">会议日程</span><span style="color: #5E6670; font-size: 13px">2</span></a>
+    <a href="Actions.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; background: #E9EDF8; color: #1F2328; text-decoration: none; font-weight: 500"><span style="flex: 1">会议待办</span><span style="color: #5E6670; font-size: 13px">{{mineOpen}}</span></a>
+    <a href="Minutes.dc.html" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none"><span style="flex: 1">纪要</span></a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px 32px 64px; display: flex; justify-content: center">
+    <div style="width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 24px">
+
+      <header style="display: flex; flex-direction: column; gap: 4px">
+        <h1 style="margin: 0; font-size: 28px; font-weight: 600; line-height: 36px">会议待办</h1>
+        <span style="color: #5E6670">会上领的活都在这里。我负责的也会出现在「今天 / 以后」，两边勾掉都算完成。</span>
+      </header>
+
+      <div role="tablist" aria-label="待办范围" style="display: flex; gap: 4px; border-bottom: 1px solid #ECECE9; flex-wrap: wrap">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+          <button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="height: 44px; padding: 0 14px; border: 0; background: transparent; font-size: 14px; cursor: pointer; color: {{t.fg}}; font-weight: {{t.weight}}; border-bottom: 2px solid {{t.line}}; margin-bottom: -1px">{{t.label}} <span style="color: #5E6670; font-weight: 400">{{t.count}}</span></button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+        <span style="color: #5E6670; padding: 24px 0">这里暂时没有事项。</span>
+      </sc-if>
+
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+        <section style="display: flex; flex-direction: column">
+          <h2 style="margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #5E6670">{{g.title}}</h2>
+          <sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid #F0F1F3; min-height: 32px">
+              <button type="button" aria-pressed="{{it.pressed}}" aria-label="{{it.aria}}" onClick="{{it.toggle}}" style="width: 44px; height: 44px; margin: -6px 0; flex: none; border: 0; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer">
+                <span style="width: 20px; height: 20px; box-sizing: border-box; border-radius: 10px; border: 1.5px solid {{it.ring}}; background: {{it.fill}}; color: #FFFFFF; font-size: 12px; display: flex; align-items: center; justify-content: center">{{it.tick}}</span>
+              </button>
+              <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                <span style="text-decoration: {{it.strike}}; color: {{it.titleFg}}">{{it.title}}</span>
+                <span style="font-size: 12px; color: #5E6670">{{it.owner}}</span>
+              </span>
+              <span style="font-size: 13px; color: {{it.dueFg}}; flex: none">{{it.due}}</span>
+              <sc-if value="{{it.canNudge}}" hint-placeholder-val="{{ false }}">
+                <button type="button" onClick="{{it.nudge}}" style="height: 32px; padding: 0 10px; border: 1px solid #E1E3E8; background: #FFFFFF; border-radius: 6px; font-size: 12px; color: #1F2328; cursor: pointer; flex: none">{{it.nudgeLabel}}</button>
+              </sc-if>
+            </div>
+          </sc-for>
+        </section>
+      </sc-for>
+
+      <sc-if value="{{showNudgePreview}}" hint-placeholder-val="{{ false }}">
+        <div role="status" style="padding: 14px 16px; background: #F7F7F5; border-radius: 10px; font-size: 13px; line-height: 21px; color: #3F4650; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-weight: 500; color: #1F2328">已复制催办消息，可直接粘贴到微信：</span>
+          <span>{{nudgeText}}</span>
+        </div>
+      </sc-if>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'mine', done: { d1: true, d2: true }, nudged: null };
+  }
+  renderVals() {
+    const items = [
+      { id: 'm1', who: 'mine', title: '更新下周排期表', due: '今天', meeting: '产品周会 · 10月22日' },
+      { id: 'm2', who: 'mine', title: '补齐两个数据指标口径', due: '周五', meeting: '产品周会 · 10月22日' },
+      { id: 'm3', who: 'mine', title: '整理新版首页的数据口径', due: '逾期 1 天', late: true, meeting: '产品周会 · 10月15日' },
+      { id: 'm4', who: 'mine', title: '给供应商发需求清单', due: '今天', meeting: '客户需求沟通 · 10月21日' },
+      { id: 'm5', who: 'mine', title: '约法务看合同条款', due: '周五', meeting: '客户需求沟通 · 10月21日' },
+      { id: 'f1', who: 'follow', owner: '李娜', title: '出一版冷启动兜底方案', due: '周五', meeting: '产品周会 · 10月22日' },
+      { id: 'f2', who: 'follow', owner: '张伟', title: '首页 v3 视觉稿定稿', due: '10月28日', meeting: '产品周会 · 10月22日' },
+      { id: 'f3', who: 'follow', owner: '李娜', title: '确认埋点方案', due: '逾期 2 天', late: true, meeting: '产品周会 · 10月15日' },
+      { id: 'f4', who: 'follow', owner: '客户方 · 刘经理', title: '发正式报价单', due: '10月24日', meeting: '客户需求沟通 · 10月21日' },
+      { id: 'd1', who: 'mine', title: '会议室预约改到 3 楼', due: '10月21日', meeting: '产品周会 · 10月15日' },
+      { id: 'd2', who: 'follow', owner: '王强', title: '同步测试环境地址', due: '10月20日', meeting: '产品周会 · 10月15日' }
+    ];
+    const done = this.state.done;
+    const tab = this.state.tab;
+    const visible = items.filter((it) => (tab === 'done' ? !!done[it.id] : !done[it.id] && it.who === tab));
+    const order = [];
+    const byMeeting = {};
+    visible.forEach((it) => {
+      if (!byMeeting[it.meeting]) { byMeeting[it.meeting] = []; order.push(it.meeting); }
+      const isDone = !!done[it.id];
+      byMeeting[it.meeting].push({
+        title: it.title,
+        owner: it.who === 'mine' ? '我负责' : it.owner + ' 负责',
+        due: isDone ? '已完成' : it.due,
+        dueFg: isDone ? '#2F7D4F' : it.late ? '#B3261E' : '#5E6670',
+        pressed: String(isDone),
+        aria: (isDone ? '标记为未完成：' : '标记为完成：') + it.title,
+        ring: isDone ? '#2F7D4F' : '#9AA1AB',
+        fill: isDone ? '#2F7D4F' : '#FFFFFF',
+        tick: isDone ? '✓' : '',
+        strike: isDone ? 'line-through' : 'none',
+        titleFg: isDone ? '#5E6670' : '#1F2328',
+        canNudge: it.who === 'follow' && !isDone,
+        nudgeLabel: this.state.nudged === it.id ? '已复制' : '催一下',
+        nudge: () => this.setState({ nudged: it.id }),
+        toggle: () => this.setState({ done: Object.assign({}, done, { [it.id]: !done[it.id] }) })
+      });
+    });
+    const groups = order.map((m) => ({ title: m, items: byMeeting[m] }));
+    const count = (w) => items.filter((it) => !done[it.id] && it.who === w).length;
+    const tabs = [
+      { id: 'mine', label: '我负责的', count: count('mine') },
+      { id: 'follow', label: '我跟进的', count: count('follow') },
+      { id: 'done', label: '已完成', count: items.filter((it) => done[it.id]).length }
+    ].map((t) => ({
+      label: t.label,
+      count: t.count,
+      selected: String(t.id === tab),
+      fg: t.id === tab ? '#1F2328' : '#5E6670',
+      weight: t.id === tab ? '600' : '400',
+      line: t.id === tab ? '#3A5CCC' : 'transparent',
+      pick: () => this.setState({ tab: t.id, nudged: null })
+    }));
+    const n = items.find((it) => it.id === this.state.nudged);
+    return {
+      tabs,
+      groups,
+      isEmpty: groups.length === 0,
+      mineOpen: count('mine'),
+      showNudgePreview: !!n && tab === 'follow',
+      nudgeText: n ? n.owner + '，' + n.meeting.split(' · ')[0] + '上定的「' + n.title + '」（截止 ' + n.due.replace('逾期', '已逾期') + '）进展怎么样了？有需要我配合的随时说。' : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

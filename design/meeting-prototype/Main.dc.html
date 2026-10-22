@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>MyLog · 会议日程</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#3A5CCC}a:hover{color:#2B479F}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-wrap: wrap; background: #FFFFFF; color: #1F2328; font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; font-size: 14px">
+
+  <nav aria-label="主导航" style="flex: 1 1 220px; box-sizing: border-box; background: #F7F7F5; border-right: 1px solid #ECECE9; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px">
+    <div style="padding: 4px 10px 16px; font-size: 17px; font-weight: 600">MyLog</div>
+    <a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6670" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2"></path></svg>
+      <span style="flex: 1">今天</span><span style="color: #5E6670; font-size: 13px">7</span>
+    </a>
+    <a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6670" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
+      <span style="flex: 1">收集箱</span><span style="color: #5E6670; font-size: 13px">4</span>
+    </a>
+    <a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6670" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+      <span style="flex: 1">以后</span><span style="color: #5E6670; font-size: 13px">11</span>
+    </a>
+    <div style="padding: 20px 10px 6px; font-size: 12px; color: #5E6670; font-weight: 500">会议</div>
+    <a href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; background: #E9EDF8; color: #1F2328; text-decoration: none; font-weight: 500">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3A5CCC" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 8-6 4 6 4V8z"></path><rect x="2" y="6" width="14" height="12" rx="2"></rect></svg>
+      <span style="flex: 1">会议日程</span><span style="color: #5E6670; font-size: 13px">3</span>
+    </a>
+    <a href="Actions.dc.html" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6670" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 11 3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+      <span style="flex: 1">会议待办</span><span style="color: #5E6670; font-size: 13px">5</span>
+    </a>
+    <a href="Minutes.dc.html" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #1F2328; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6670" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M8 13h8M8 17h5"></path></svg>
+      <span style="flex: 1">纪要</span>
+    </a>
+    <div style="flex: 1; min-height: 24px"></div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px">
+      <span style="width: 28px; height: 28px; border-radius: 50%; background: #DDE3F5; color: #2B479F; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600">我</span>
+      <span style="font-size: 13px">[你的名字]</span>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px 32px 64px; display: flex; justify-content: center">
+    <div style="width: 100%; max-width: 1080px; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start">
+
+      <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+        <header style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <h1 style="margin: 0; font-size: 28px; font-weight: 600; line-height: 36px">会议</h1>
+            <span style="color: #5E6670">10月22日 周四 · 今天 4 场</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <a href="New.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border: 1px solid #E1E3E8; border-radius: 8px; color: #1F2328; text-decoration: none; font-size: 13px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path></svg>
+              粘贴腾讯会议邀请
+            </a>
+            <a href="New.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; border-radius: 8px; background: #3A5CCC; color: #FFFFFF; text-decoration: none; font-size: 13px; font-weight: 500">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              新建会议
+            </a>
+          </div>
+        </header>
+
+        <section aria-label="下一场会议" style="border: 1px solid #D5DCF2; background: #F6F8FD; border-radius: 12px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px">
+            <span style="color: #2B479F; font-weight: 600">下一场 · 还有 25 分钟</span>
+            <span style="height: 22px; padding: 0 8px; border-radius: 11px; background: #EEE9F7; color: #5B3C99; font-size: 12px; display: inline-flex; align-items: center">混合</span>
+            <span style="color: #5E6670">每周四 · 例会</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 20px; font-weight: 600">产品周会</span>
+            <span style="color: #5E6670">10:00 – 11:00 · 3 楼 小会议室 · 腾讯会议 123 456 789 · 6 人</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #3F4650">
+            <span>议程：1. 上次待办回顾（2 条未完成） 2. 新版首页方案 3. 下周排期</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <a href="https://meeting.tencent.com/" style="display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; border-radius: 8px; background: #3A5CCC; color: #FFFFFF; text-decoration: none; font-size: 13px; font-weight: 500">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 8-6 4 6 4V8z"></path><rect x="2" y="6" width="14" height="12" rx="2"></rect></svg>
+              腾讯会议入会
+            </a>
+            <button type="button" onClick="{{copyNo}}" style="display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border: 1px solid #D5DCF2; background: #FFFFFF; border-radius: 8px; color: #1F2328; font-size: 13px; cursor: pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg>
+              {{copyLabel}}
+            </button>
+            <a href="Prep.dc.html" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid #D5DCF2; background: #FFFFFF; border-radius: 8px; color: #1F2328; text-decoration: none; font-size: 13px">会前准备</a>
+            <a href="Live.dc.html" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid #D5DCF2; background: #FFFFFF; border-radius: 8px; color: #1F2328; text-decoration: none; font-size: 13px">开始记录</a>
+          </div>
+        </section>
+
+        <div role="group" aria-label="范围" style="display: inline-flex; align-self: flex-start; padding: 3px; background: #F1F2F4; border-radius: 8px; gap: 2px">
+          <button type="button" aria-pressed="{{isToday}}" onClick="{{showToday}}" style="height: 34px; padding: 0 16px; border: 0; border-radius: 6px; font-size: 13px; cursor: pointer; background: {{todayBg}}; color: #1F2328; font-weight: {{todayWeight}}">今天</button>
+          <button type="button" aria-pressed="{{isWeek}}" onClick="{{showWeek}}" style="height: 34px; padding: 0 16px; border: 0; border-radius: 6px; font-size: 13px; cursor: pointer; background: {{weekBg}}; color: #1F2328; font-weight: {{weekWeight}}">本周</button>
+        </div>
+
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="1">
+          <section style="display: flex; flex-direction: column; gap: 4px">
+            <h2 style="margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #5E6670">{{g.day}}</h2>
+            <sc-for list="{{g.items}}" as="m" hint-placeholder-count="4">
+              <a href="{{m.href}}" style="display: flex; align-items: center; gap: 16px; padding: 14px 12px; border-radius: 10px; border-bottom: 1px solid #F0F1F3; color: #1F2328; text-decoration: none; opacity: {{m.opacity}}">
+                <span style="width: 96px; flex: none; font-variant-numeric: tabular-nums; font-size: 13px; color: #3F4650">{{m.time}}</span>
+                <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                  <span style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+                    <span style="font-weight: 500">{{m.title}}</span>
+                    <span style="height: 20px; padding: 0 7px; border-radius: 10px; font-size: 12px; display: inline-flex; align-items: center; background: {{m.badgeBg}}; color: {{m.badgeFg}}">{{m.type}}</span>
+                  </span>
+                  <span style="font-size: 13px; color: #5E6670">{{m.where}}</span>
+                </span>
+                <span style="flex: none; font-size: 12px; color: {{m.statusFg}}">{{m.status}}</span>
+              </a>
+            </sc-for>
+          </section>
+        </sc-for>
+      </div>
+
+      <aside style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 16px; padding-top: 68px">
+        <section style="border: 1px solid #ECECE9; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 14px; font-weight: 600">待整理纪要 · 1</h2>
+          <span style="font-size: 13px; color: #5E6670">昨天 15:00 · 客户需求沟通（腾讯会议）· 记了 14 条</span>
+          <a href="Minutes.dc.html" style="align-self: flex-start; display: inline-flex; align-items: center; height: 36px; padding: 0 12px; border-radius: 8px; background: #F1F2F4; color: #1F2328; text-decoration: none; font-size: 13px">生成纪要</a>
+        </section>
+        <section style="border: 1px solid #ECECE9; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <h2 style="margin: 0; font-size: 14px; font-weight: 600">我负责的会议待办</h2>
+            <a href="Actions.dc.html" style="font-size: 13px; text-decoration: none">全部</a>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px">
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <span>整理新版首页的数据口径</span>
+              <span style="color: #B3261E">已逾期 1 天 · 来自 产品周会 10/15</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <span>给供应商发需求清单</span>
+              <span style="color: #5E6670">今天截止 · 来自 客户需求沟通</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <span>约法务看合同条款</span>
+              <span style="color: #5E6670">周五 · 来自 客户需求沟通</span>
+            </div>
+          </div>
+          <span style="font-size: 12px; color: #5E6670">这些待办也在「今天 / 以后」里</span>
+        </section>
+      </aside>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { range: 'today', copied: false };
+  }
+  renderVals() {
+    const types = {
+      online: { type: '腾讯会议', badgeBg: '#E9EDF8', badgeFg: '#2B479F' },
+      offline: { type: '线下', badgeBg: '#FBEFE3', badgeFg: '#8A4B12' },
+      hybrid: { type: '混合', badgeBg: '#EEE9F7', badgeFg: '#5B3C99' }
+    };
+    const st = {
+      done: { status: '纪要已发', statusFg: '#2F7D4F', opacity: '0.7' },
+      next: { status: '25 分钟后', statusFg: '#2B479F', opacity: '1' },
+      todo: { status: '未开始', statusFg: '#5E6670', opacity: '1' }
+    };
+    const mk = (time, title, kind, where, s, href) => Object.assign({ time, title, where, href: href || 'Prep.dc.html' }, types[kind], st[s]);
+    const today = [
+      mk('09:30 – 09:45', '晨会站会', 'offline', '2 楼 开放区', 'done', 'Minutes.dc.html'),
+      mk('10:00 – 11:00', '产品周会', 'hybrid', '3 楼 小会议室 + 腾讯会议 123 456 789', 'next'),
+      mk('14:00 – 15:00', '供应商方案评审', 'online', '腾讯会议 456 789 123 · 密码 已保存', 'todo'),
+      mk('16:30 – 17:00', '一对一沟通 · 王强', 'offline', '5 楼 洽谈室 B', 'todo')
+    ];
+    const groups = this.state.range === 'today'
+      ? [{ day: '今天 · 10月22日 周四', items: today }]
+      : [
+          { day: '今天 · 10月22日 周四', items: today },
+          { day: '明天 · 10月23日 周五', items: [
+            mk('10:00 – 10:45', '设计评审', 'online', '腾讯会议 789 123 456', 'todo'),
+            mk('15:00 – 17:00', '季度复盘', 'offline', '6 楼 大会议室', 'todo')
+          ] },
+          { day: '下周一 · 10月26日', items: [
+            mk('09:30 – 09:45', '晨会站会', 'offline', '2 楼 开放区', 'todo')
+          ] }
+        ];
+    const isToday = this.state.range === 'today';
+    return {
+      groups,
+      isToday: String(isToday),
+      isWeek: String(!isToday),
+      todayBg: isToday ? '#FFFFFF' : 'transparent',
+      weekBg: isToday ? 'transparent' : '#FFFFFF',
+      todayWeight: isToday ? '600' : '400',
+      weekWeight: isToday ? '400' : '600',
+      showToday: () => this.setState({ range: 'today' }),
+      showWeek: () => this.setState({ range: 'week' }),
+      copyLabel: this.state.copied ? '已复制会议号和密码' : '复制会议号',
+      copyNo: () => this.setState({ copied: true })
+    };
+  }
+}
+</script>
+</body>
+</html>
