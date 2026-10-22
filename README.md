@@ -26,12 +26,12 @@ npm test             # 单元测试 + 服务端接口测试（接口测试用 my
 
 ## 部署
 
-```bash
-npm run build                      # 打包前端到 dist/
-DATABASE_URL=... TRUST_PROXY=1 npm run server   # 同一个进程提供 /api 和前端页面
-```
+用 Docker Compose 一键运行 MyLog + MySQL，前面用 Nginx 提供 HTTPS，详见 [docs/02-部署.md](docs/02-部署.md)。
 
-环境变量见 [.env.example](.env.example)。建议在前面加一层 Nginx 做 HTTPS。
+```bash
+cp .env.example .env        # 填两个数据库密码
+docker compose up -d --build
+```
 
 ## 同步是怎么做的
 
