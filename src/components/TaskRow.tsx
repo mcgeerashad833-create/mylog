@@ -3,7 +3,8 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Task } from '../db'
 import { relativeLabel } from '../lib/date'
-import { CheckIcon, ClockIcon, GripIcon, ListIcon, StarIcon, CalendarIcon } from './Icons'
+import { repeatLabel } from '../lib/repeat'
+import { CheckIcon, ClockIcon, GripIcon, ListIcon, StarIcon, CalendarIcon, RepeatIcon } from './Icons'
 
 interface Props {
   task: Task
@@ -63,7 +64,7 @@ function RowView({
 }: Props & { rowRef?: (el: HTMLElement | null) => void; style?: CSSProperties; dragging?: boolean; grip?: ReactNode }) {
   const subDone = task.subtasks.filter((s) => s.done).length
   const late = !task.done && task.date !== null && task.date < today
-  const hasMeta = task.time || task.subtasks.length > 0 || task.tag || (showDate && task.date) || late
+  const hasMeta = task.time || task.repeat || task.subtasks.length > 0 || task.tag || (showDate && task.date) || late
   const cls = ['row', task.done && 'done', selected && 'selected', dragging && 'dragging'].filter(Boolean).join(' ')
 
   return (
@@ -92,6 +93,12 @@ function RowView({
               <span>
                 <ClockIcon size={13} />
                 {task.time}
+              </span>
+            )}
+            {task.repeat && (
+              <span>
+                <RepeatIcon size={13} />
+                {repeatLabel(task.repeat)}
               </span>
             )}
             {task.subtasks.length > 0 && (

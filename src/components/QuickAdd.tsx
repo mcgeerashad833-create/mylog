@@ -3,6 +3,7 @@ import { parseQuickAdd } from '../lib/parse'
 import { relativeLabel } from '../lib/date'
 import { addTask } from '../store'
 import { PlusIcon } from './Icons'
+import { ensureNotifyPermission } from '../reminders'
 
 interface Props {
   today: string
@@ -23,7 +24,9 @@ export function QuickAdd({ today, defaultDate, placeholder, inputRef, onNotice }
     if (!parsed.title) return
     // 先清空再保存：保存是异步的，晚清空会吞掉用户紧接着输入的下一条
     setDraft('')
-    await addTask({ title: parsed.title, date: target, time: parsed.time, star: parsed.star, tag: parsed.tag })
+    // 带时间的事默认准时提醒；按回车属于用户操作，可以在这时申请通知权限
+    if (parsed.time) void ensureNotifyPermission()
+    await addTask({ title: parsed.title, date: target, time: parsed.time, star: parsed.star, tag: parsed.tag, repeat: parsed.repeat })
     // 加到当前页看不到的地方时，提示一下去了哪里
     if (target !== defaultDate) onNotice(`已加入「${targetLabel}」`)
   }
@@ -46,6 +49,8 @@ export function QuickAdd({ today, defaultDate, placeholder, inputRef, onNotice }
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) void submit()
             if (e.key === 'Escape') {
               setDraft('')
+    // 带时间的事默认准时提醒；按回车属于用户操作，可以在这时申请通知权限
+    if (parsed.time) void ensureNotifyPermission()
               e.currentTarget.blur()
             }
           }}

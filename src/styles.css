@@ -241,3 +241,17 @@ textarea.note:focus { border-color: var(--accent); }
 .sidebar-foot .state-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; background: #c4c8cf; }
 .sidebar-foot .state-dot.ok { background: var(--ok); }
 .sidebar-foot .state-dot.bad { background: var(--star); }
+
+/* 重复与提醒 */
+.field select {
+  border: 1px solid transparent; border-radius: 6px; padding: 4px 6px; background: transparent; font-size: 14px;
+}
+.field select:hover, .field select:focus { border-color: var(--border); outline: none; }
+.field select:disabled { color: var(--text-3); }
+.week-picker { display: flex; gap: 4px; flex-basis: 100%; padding-left: 60px; }
+.week-picker button {
+  width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: #fff; font-size: 13px; padding: 0;
+}
+.week-picker button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.switch-row { display: flex; align-items: center; gap: 12px; min-height: 52px; border-bottom: 1px solid var(--line-soft); }
+.switch-row input[type='checkbox'] { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }

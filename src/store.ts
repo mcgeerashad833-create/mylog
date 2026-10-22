@@ -1,5 +1,6 @@
 import { db, type Day, type Subtask, type Task } from './db'
 import { todayKey } from './lib/date'
+import { nextAfter, type Repeat } from './lib/repeat'
 import { scheduleSync } from './sync'
 
 const uid = () => crypto.randomUUID()
@@ -25,6 +26,7 @@ export interface NewTask {
   time?: string | null
   star?: boolean
   tag?: string | null
+  repeat?: Repeat | null
 }
 
 export async function addTask(input: NewTask): Promise<Task> {
@@ -44,6 +46,9 @@ export async function addTask(input: NewTask): Promise<Task> {
     doneAt: null,
     order: minOrder - 1,
     subtasks: [],
+    repeat: input.repeat ?? null,
+    remindBefore: 0,
+    spawnedId: null,
     createdAt: ts,
     updatedAt: ts,
     deletedAt: null,
@@ -60,7 +65,30 @@ export async function updateTask(id: string, patch: Partial<Omit<Task, 'id'>>): 
 }
 
 export async function toggleDone(t: Task): Promise<void> {
-  await updateTask(t.id, { done: !t.done, doneAt: t.done ? null : now() })
+  if (t.done) {
+    // 撤销完成：之前顺手生成的下一次，如果还没动过就一起撤掉
+    if (t.spawnedId) {
+      const next = await db.tasks.get(t.spawnedId)
+      if (next && !next.done && !next.deletedAt) await deleteTask(next.id)
+    }
+    await updateTask(t.id, { done: false, doneAt: null, spawnedId: null })
+    return
+  }
+  let spawnedId: string | null = null
+  if (t.repeat && t.date) {
+    // 下一次从「原定日期」和「今天」中较晚的那天往后算，避免补出一串过期的
+    const today = todayKey()
+    const base = t.date > today ? t.date : today
+    const next = await addTask({ title: t.title, date: nextAfter(t.repeat, base), time: t.time, star: t.star, tag: t.tag, repeat: t.repeat })
+    await updateTask(next.id, {
+      note: t.note,
+      order: t.order,
+      remindBefore: t.remindBefore,
+      subtasks: t.subtasks.map((s) => ({ ...s, done: false })),
+    })
+    spawnedId = next.id
+  }
+  await updateTask(t.id, { done: true, doneAt: now(), spawnedId })
 }
 
 export async function deleteTask(id: string): Promise<void> {

@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
+import type { Repeat } from './lib/repeat'
 
 export interface Subtask {
   id: string
@@ -22,6 +23,12 @@ export interface Task {
   /** 同一天内的手动排序，越小越靠前 */
   order: number
   subtasks: Subtask[]
+  /** 重复规则；完成时自动生成下一次 */
+  repeat: Repeat | null
+  /** 提前几分钟提醒（需要有 time）；null 表示不提醒 */
+  remindBefore: number | null
+  /** 重复任务完成时生成的下一次的 id，撤销完成时用来删掉它 */
+  spawnedId: string | null
   createdAt: string
   /** 以下两个字段为多设备同步准备：按 updatedAt 合并，删除用软删除标记 */
   updatedAt: string

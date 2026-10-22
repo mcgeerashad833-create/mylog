@@ -45,4 +45,26 @@ describe('parseQuickAdd', () => {
     const p = parseQuickAdd('买 30点 东西', TODAY)
     expect(p.time).toBeUndefined()
   })
+
+  it('重复：每周几', () => {
+    const p = parseQuickAdd('每周一三五 晨跑 早上7点', TODAY)
+    expect(p.repeat).toEqual({ kind: 'weekly', days: [1, 3, 5] })
+    expect(p.date).toBe(TODAY)
+    expect(p.time).toBe('07:00')
+    expect(p.title).toBe('晨跑')
+    expect(p.chips).toEqual(['每周一、三、五', '今天', '07:00'])
+  })
+
+  it('重复：每天 / 工作日 / 每月', () => {
+    expect(parseQuickAdd('每天 吃药', TODAY)).toMatchObject({ repeat: { kind: 'daily' }, date: TODAY, title: '吃药' })
+    expect(parseQuickAdd('每个工作日 打卡', TODAY).repeat).toEqual({ kind: 'weekdays' })
+    const m = parseQuickAdd('每月25号 交房租', TODAY)
+    expect(m).toMatchObject({ repeat: { kind: 'monthly', day: 25 }, date: '2026-10-25', title: '交房租' })
+  })
+
+  it('重复加起始日期', () => {
+    const p = parseQuickAdd('每周五 下周五开始 交周报', TODAY)
+    expect(p.repeat).toEqual({ kind: 'weekly', days: [5] })
+    expect(p.date).toBe('2026-10-30')
+  })
 })

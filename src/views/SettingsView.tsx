@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, logout, requestCode, syncNow, useSyncState, verifyCode, type SyncState } from '../sync'
+import { ensureNotifyPermission, setRemindersEnabled, useReminderSettings } from '../reminders'
 
 interface Session {
   id: number
@@ -30,9 +31,15 @@ export function SettingsView() {
   return (
     <div className="column" style={{ maxWidth: 680, gap: 32 }}>
       <header className="header">
-        <h1>账户与同步</h1>
+        <h1>设置</h1>
       </header>
-      {sync.email ? <Account sync={sync} /> : <Login />}
+      <section aria-labelledby="s-account" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <h2 id="s-account" className="group-title" style={{ fontSize: 16 }}>
+          账户与同步
+        </h2>
+        {sync.email ? <Account sync={sync} /> : <Login />}
+      </section>
+      <ReminderSettings />
     </div>
   )
 }
@@ -204,5 +211,41 @@ function Account({ sync }: { sync: SyncState }) {
         )}
       </section>
     </>
+  )
+}
+
+function ReminderSettings() {
+  const { enabled, permission } = useReminderSettings()
+  return (
+    <section aria-labelledby="s-remind" style={{ display: 'flex', flexDirection: 'column' }}>
+      <h2 id="s-remind" className="group-title" style={{ fontSize: 16 }}>
+        提醒
+      </h2>
+      <label className="switch-row">
+        <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span>到点提醒</span>
+          <span className="tiny">设了时间的事，到点发一条安静的通知（不响铃）。可以在任务详情里改提前量或关掉。</span>
+        </span>
+        <input type="checkbox" role="switch" checked={enabled} onChange={(e) => setRemindersEnabled(e.target.checked)} />
+      </label>
+      {enabled && (
+        <div className="switch-row">
+          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span>系统通知</span>
+            <span className="tiny">
+              {permission === 'granted' && '已允许。MyLog 页面开着（可以在后台）时才会提醒。'}
+              {permission === 'default' && '还没允许，现在只会在 MyLog 页面里提示。'}
+              {permission === 'denied' && '已被浏览器拦截，请在浏览器的网站设置里允许通知。'}
+              {permission === 'unsupported' && '这个浏览器不支持系统通知，只会在页面里提示。'}
+            </span>
+          </span>
+          {permission === 'default' && (
+            <button className="btn" onClick={() => void ensureNotifyPermission()}>
+              允许通知
+            </button>
+          )}
+        </div>
+      )}
+    </section>
   )
 }

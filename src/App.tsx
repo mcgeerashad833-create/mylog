@@ -9,6 +9,7 @@ import { InboxView, LaterView, TodayView, selectToday, type ViewProps } from './
 import { LogView } from './views/LogView'
 import { SettingsView, syncLabel } from './views/SettingsView'
 import { startAutoSync, useSyncState } from './sync'
+import { useReminders } from './reminders'
 import { PlanDialog, planQueue } from './views/PlanDialog'
 
 type View = 'today' | 'inbox' | 'later' | 'log' | 'settings'
@@ -68,9 +69,23 @@ export function App() {
 
   const notice = (text: string, undo?: () => void) => setToast({ text, undo })
 
+  useReminders(
+    tasks,
+    // 已经弹了系统通知就不在页面里重复提示
+    (_t, text, viaSystem) => !viaSystem && notice('提醒：' + text),
+    (t) => setSelectedId(t.id),
+  )
+
   const onToggle = (t: Task) => {
     void toggleDone(t)
-    if (!t.done) notice(`已完成「${t.title}」`, () => void toggleDone({ ...t, done: true }))
+    // 撤销时重新读一遍：完成重复任务会写入 spawnedId，撤销要靠它删掉生成的下一次
+    if (!t.done) {
+      notice(`已完成「${t.title}」`, () =>
+        void db.tasks.get(t.id).then((cur) => {
+          if (cur?.done) return toggleDone(cur)
+        }),
+      )
+    }
   }
 
   const { active, overdue } = selectToday(tasks, today)
