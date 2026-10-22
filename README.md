@@ -26,7 +26,7 @@ npm test             # 单元测试 + 服务端接口测试（接口测试用 my
 
 ## 部署
 
-用 Docker Compose 一键运行 MyLog + MySQL，前面用 Nginx 提供 HTTPS，详见 [docs/02-部署.md](docs/02-部署.md)。
+用 Docker Compose 一键运行 MyLog + MySQL，前面用 Nginx 提供 HTTPS，详见 [docs/02-部署.md](docs/02-部署.md)。上线时对照 [docs/03-上线检查清单.md](docs/03-上线检查清单.md) 逐项检查。
 
 ```bash
 cp .env.example .env        # 填两个数据库密码
