@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>MyLog · 早间规划</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F3F1}
+a{color:#3A5CCC}a:hover{color:#2B479F}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="min-height: 900px; box-sizing: border-box; background: #F3F3F1; color: #1F2328; font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; font-size: 14px; display: flex; align-items: center; justify-content: center; padding: 48px 16px">
+  <div role="dialog" aria-labelledby="plan-title" style="width: 100%; max-width: 560px; background: #FFFFFF; border-radius: 16px; box-shadow: 0 12px 40px rgba(16,24,40,0.10); padding: 36px 36px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 13px; color: #5E6670">10月21日 周三 · 早上好</span>
+      <h1 id="plan-title" style="margin: 0; font-size: 24px; font-weight: 600; line-height: 32px">今天要做哪些事？</h1>
+      <span style="font-size: 13px; color: #5E6670">逐条决定，大约 1 分钟。</span>
+    </div>
+
+    <div style="display: flex; gap: 4px" aria-hidden="true">
+      <sc-for list="{{dots}}" as="d" hint-placeholder-count="7">
+        <span style="{{d.style}}"></span>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{inProgress}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 20px">
+        <div style="border: 1px solid #E6E6E3; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 10px; min-height: 96px; justify-content: center">
+          <span style="align-self: flex-start; font-size: 12px; color: #2B479F; background: #EEF2FC; border-radius: 4px; padding: 2px 8px">{{cur.source}}</span>
+          <span style="font-size: 18px; font-weight: 500; line-height: 28px">{{cur.title}}</span>
+          <sc-if value="{{cur.hint}}" hint-placeholder-val="{{ false }}">
+            <span style="font-size: 13px; color: #5E6670">{{cur.hint}}</span>
+          </sc-if>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+          <button onClick="{{doToday}}" style="height: 48px; border: 0; border-radius: 10px; background: #3A5CCC; color: #FFFFFF; font-size: 15px; font-weight: 500; cursor: pointer">今天做</button>
+          <button onClick="{{doLater}}" style="height: 48px; border: 1px solid #DADDE3; border-radius: 10px; background: #FFFFFF; color: #1F2328; font-size: 15px; cursor: pointer">改天</button>
+          <button onClick="{{doDrop}}" style="height: 48px; border: 1px solid #DADDE3; border-radius: 10px; background: #FFFFFF; color: #1F2328; font-size: 15px; cursor: pointer">不做了</button>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6B7280">
+          <span>第 {{pos}} / {{count}} 件 · 已选 {{pickedCount}} 件</span>
+          <span>键盘：1 今天 · 2 改天 · 3 不做</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{finished}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 16px">
+        <span style="font-size: 15px">今天共 <strong style="font-weight: 600">{{totalToday}}</strong> 件事，已经排好了。</span>
+        <div style="display: flex; flex-direction: column; border-top: 1px solid #F0F0EE">
+          <sc-for list="{{picked}}" as="p" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; height: 40px; border-bottom: 1px solid #F0F0EE">
+              <span style="width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #9AA1AC; box-sizing: border-box; flex: none"></span>
+              <span style="flex: 1; font-size: 14px">{{p.title}}</span>
+              <span style="font-size: 12px; color: #6B7280">{{p.source}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font-size: 13px; color: #5E6670">另有 {{fixedCount}} 件本来就在今天。改天 {{laterCount}} 件，不做 {{dropCount}} 件。</span>
+        <div style="display: flex; gap: 10px; justify-content: flex-end">
+          <button onClick="{{restart}}" style="height: 44px; padding: 0 16px; border: 0; border-radius: 10px; background: transparent; color: #5E6670; font-size: 14px; cursor: pointer">重新选</button>
+          <a href="Main.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 10px; background: #3A5CCC; color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 500">开始今天</a>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="display: flex; justify-content: center; padding-top: 4px">
+      <a href="Main.dc.html" style="font-size: 13px; color: #5E6670">跳过，直接进入今天</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.queue = [
+      { title: '预约体检', source: '昨天遗留', hint: '已经顺延过 2 次' },
+      { title: '更新简历里的项目经历', source: '昨天遗留', hint: '' },
+      { title: '交 10 月报销单', source: '今天到期', hint: '有 3 个子步骤' },
+      { title: '给妈妈寄降压药', source: '收集箱', hint: '10月18日 记下' },
+      { title: '研究一下新的记账软件', source: '收集箱', hint: '10月15日 记下' },
+      { title: '还信用卡', source: '今天到期', hint: '每月 21 号' },
+      { title: '把旧手机挂到闲鱼', source: '收集箱', hint: '10月9日 记下' }
+    ];
+    this.state = { i: 0, decisions: [] };
+  }
+
+  decide(kind) {
+    if (this.state.i >= this.queue.length) return;
+    this.setState({ i: this.state.i + 1, decisions: this.state.decisions.concat([kind]) });
+  }
+
+  renderVals() {
+    const i = this.state.i;
+    const n = this.queue.length;
+    const dec = this.state.decisions;
+    const picked = this.queue.filter((q, k) => dec[k] === 'today');
+    const fixed = 4;
+    const dots = this.queue.map((q, k) => ({
+      style: 'flex: 1; height: 4px; border-radius: 2px; background: ' + (k < i ? '#3A5CCC' : (k === i ? '#9DB0E8' : '#E6E6E3'))
+    }));
+    return {
+      dots: dots,
+      inProgress: i < n,
+      finished: i >= n,
+      cur: this.queue[Math.min(i, n - 1)],
+      pos: Math.min(i + 1, n),
+      count: n,
+      pickedCount: picked.length,
+      picked: picked,
+      totalToday: picked.length + fixed,
+      fixedCount: fixed,
+      laterCount: dec.filter((d) => d === 'later').length,
+      dropCount: dec.filter((d) => d === 'drop').length,
+      doToday: () => this.decide('today'),
+      doLater: () => this.decide('later'),
+      doDrop: () => this.decide('drop'),
+      restart: () => this.setState({ i: 0, decisions: [] })
+    };
+  }
+}
+</script>
+</body>
+</html>
