@@ -2,8 +2,8 @@ import { db, type Day, type OutboxEntry, type Subtask, type Task } from './db'
 import { todayKey } from './lib/date'
 import { nextAfter, type Repeat } from './lib/repeat'
 import { scheduleSync } from './sync'
+import { uid } from './lib/uid'
 
-const uid = () => crypto.randomUUID()
 const now = () => new Date().toISOString()
 
 /** 记下哪些记录改过，等下次同步时推送 */
