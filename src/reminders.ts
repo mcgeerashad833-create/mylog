@@ -1,6 +1,7 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import type { Task } from './db'
 import { fromKey } from './lib/date'
+import { showNotification } from './pwa'
 
 // 提醒开关和已提醒记录是本机偏好，存 localStorage
 const ENABLED_KEY = 'mylog.remind'
@@ -115,10 +116,10 @@ function fromTime(t: Task): number {
  * 应用开着时每 15 秒检查一次，到点就发系统通知（没授权时只在页面里提示）。
  * 关掉所有 MyLog 页面后不会提醒——网页做不到后台推送，以后做桌面或手机客户端再补。
  */
-export function useReminders(tasks: Task[], onFire: (t: Task, text: string, viaSystem: boolean) => void, onClick: (t: Task) => void) {
+export function useReminders(tasks: Task[], onFire: (t: Task, text: string, viaSystem: boolean) => void) {
   const { enabled } = useReminderSettings()
-  const latest = useRef({ tasks, onFire, onClick })
-  latest.current = { tasks, onFire, onClick }
+  const latest = useRef({ tasks, onFire })
+  latest.current = { tasks, onFire }
 
   useEffect(() => {
     if (!enabled) return
@@ -130,16 +131,10 @@ export function useReminders(tasks: Task[], onFire: (t: Task, text: string, viaS
       for (const { task, key } of due) {
         fired[key] = now
         const text = `${describe(task, fireTime(task)!)}：${task.title}`
-        const system = readPermission() === 'granted'
-        if (system) {
-          const n = new Notification('MyLog 提醒', { body: text, tag: key, silent: true })
-          n.onclick = () => {
-            window.focus()
-            latest.current.onClick(task)
-            n.close()
-          }
-        }
-        latest.current.onFire(task, text, system)
+        // 点通知后由 App 里的 onNotificationClick 打开这件事
+        void showNotification('MyLog 提醒', text, key, { kind: 'task', id: task.id }).then((system) =>
+          latest.current.onFire(task, text, system),
+        )
       }
       writeFired(fired)
     }

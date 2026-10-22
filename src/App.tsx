@@ -13,6 +13,7 @@ import { SearchView } from './views/SearchView'
 import { SettingsView, syncLabel } from './views/SettingsView'
 import { startAutoSync, useSyncState } from './sync'
 import { useReminders } from './reminders'
+import { onNotificationClick, showNotification } from './pwa'
 import { PlanDialog, planQueue } from './views/PlanDialog'
 import { ActionsView, MeetingsSection, StatsView, type MeetingProps, type MeetingRoute } from './views/meetings'
 
@@ -45,10 +46,6 @@ function useNow(ms: number): Date {
   return now
 }
 
-function canNotify(): boolean {
-  return typeof Notification !== 'undefined'
-}
-
 /** 会前提醒、会后还没整理纪要的提醒：系统通知 + 页面内提示 */
 function useMeetingReminders(meetings: Meeting[], now: Date, show: (t: Toast) => void, open: (r: MeetingRoute) => void) {
   // 写库是异步的，写完之前可能又渲染一次，用它防止同一条提醒发两遍
@@ -62,15 +59,9 @@ function useMeetingReminders(meetings: Meeting[], now: Date, show: (t: Toast) =>
     before.forEach((m) => fired.current.add(key('b', m)))
     after.forEach((m) => fired.current.add(key('a', m)))
     const ts = new Date().toISOString()
-    const notify = (title: string, body: string, route: MeetingRoute) => {
-      if (canNotify() && Notification.permission === 'granted') {
-        const n = new Notification(title, { body, tag: title })
-        n.onclick = () => {
-          window.focus()
-          open(route)
-        }
-      }
-    }
+    // 点通知后由 App 里的 onNotificationClick 打开会议
+    const notify = (title: string, body: string, route: Extract<MeetingRoute, { id: string }>) =>
+      void showNotification(title, body, title, { kind: 'meeting', page: route.page, id: route.id })
     for (const m of before) {
       void updateMeeting(m.id, { remindedAt: ts })
       const mins = Math.max(1, Math.ceil((startAt(m).getTime() - now.getTime()) / 60_000))
@@ -152,7 +143,16 @@ export function App() {
     tasks,
     // 已经弹了系统通知就不在页面里重复提示
     (_t, text, viaSystem) => !viaSystem && notice('提醒：' + text),
-    (t) => setSelectedId(t.id),
+  )
+
+  // 点系统通知：打开对应的任务详情或会议
+  useEffect(
+    () =>
+      onNotificationClick((t) => {
+        if (t.kind === 'task') setSelectedId(t.id)
+        else openMeeting({ page: t.page, id: t.id } as MeetingRoute)
+      }),
+    [openMeeting],
   )
 
   const onToggle = (t: Task) => {

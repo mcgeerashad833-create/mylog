@@ -6,7 +6,7 @@
 - 界面原型：[design/prototype](design/prototype)
 - 会议管理：[功能设计](docs/04-会议管理功能设计.md) · [界面原型](design/meeting-prototype)
 
-前端：React + TypeScript + Vite，数据存在浏览器 IndexedDB，离线可用。服务端：Node.js（Fastify）+ MySQL，负责邮箱登录和多设备同步。
+前端：React + TypeScript + Vite，数据存在浏览器 IndexedDB；是可安装的网页应用（PWA），可以装到电脑桌面或手机主屏幕，断网也能打开。服务端：Node.js（Fastify）+ MySQL，负责邮箱登录和多设备同步。
 
 ## 开发
 
@@ -57,6 +57,7 @@ docker compose up -d --build
 - [x] 重复任务（每天 / 工作日 / 每周几 / 每月几号，完成后自动生成下一次）
 - [x] 到点提醒（系统通知，可提前 5–60 分钟，默认安静不响铃）
 - [x] 搜索（标题、备注、子步骤、每天的一句话；`#标签` 只搜标签；快捷键 `/`）
+- [x] 可安装、断网可打开（PWA）；提醒通过 Service Worker 发出，安卓手机上也能收到
 
 ### 会议管理
 
