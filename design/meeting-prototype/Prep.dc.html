@@ -13,7 +13,8 @@
 <style>
 body{margin:0;background:#FFFFFF}
 a{color:#3A5CCC}a:hover{color:#2B479F}
-button{font-family:inherit}
+button,input{font-family:inherit}
+input::placeholder{color:#8A9099}
 </style>
 </helmet>
 <div style="min-height: 900px; display: flex; flex-wrap: wrap; background: #FFFFFF; color: #1F2328; font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; font-size: 14px">
@@ -64,61 +65,59 @@ button{font-family:inherit}
 
         <div style="flex: 999 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 28px">
           <section style="display: flex; flex-direction: column; gap: 12px">
-            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
-              <h2 style="margin: 0; font-size: 16px; font-weight: 600">议程</h2>
-              <span style="font-size: 13px; color: #5E6670">合计 55 / 60 分钟</span>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600">上次留下的待办</h2>
+              <a href="Minutes.dc.html" style="font-size: 13px; text-decoration: none">来自 10月15日 周会纪要</a>
             </div>
-            <ol style="margin: 0; padding: 0; list-style: none; border: 1px solid #ECECE9; border-radius: 10px">
-              <li style="padding: 14px 16px; border-bottom: 1px solid #F0F1F3; display: flex; flex-direction: column; gap: 10px">
-                <div style="display: flex; align-items: center; gap: 12px">
-                  <span style="width: 20px; color: #5E6670">1</span>
-                  <span style="flex: 1; font-weight: 500">上次待办回顾</span>
-                  <span style="font-size: 12px; color: #2B479F; background: #E9EDF8; height: 20px; padding: 0 7px; border-radius: 10px; display: inline-flex; align-items: center">自动带入</span>
-                  <span style="width: 56px; text-align: right; font-size: 13px">10 分钟</span>
-                </div>
-                <div style="margin-left: 32px; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: #F7F7F5; border-radius: 8px; font-size: 13px">
-                  <span style="color: #5E6670">10月15日 周会留下 4 条待办，2 条未完成：</span>
-                  <span style="display: flex; gap: 8px; flex-wrap: wrap"><span style="flex: 1; min-width: 160px">整理新版首页的数据口径</span><span style="color: #3F4650">我</span><span style="color: #B3261E">逾期 1 天</span></span>
-                  <span style="display: flex; gap: 8px; flex-wrap: wrap"><span style="flex: 1; min-width: 160px">确认埋点方案</span><span style="color: #3F4650">李娜</span><span style="color: #5E6670">进行中</span></span>
-                </div>
-              </li>
-              <li style="padding: 14px 16px; border-bottom: 1px solid #F0F1F3; display: flex; align-items: center; gap: 12px">
-                <span style="width: 20px; color: #5E6670">2</span>
-                <span style="flex: 1; font-weight: 500">新版首页方案</span>
-                <span style="color: #5E6670; font-size: 13px">张伟</span>
-                <span style="width: 56px; text-align: right; font-size: 13px">30 分钟</span>
-              </li>
-              <li style="padding: 14px 16px; display: flex; align-items: center; gap: 12px">
-                <span style="width: 20px; color: #5E6670">3</span>
-                <span style="flex: 1; font-weight: 500">下周排期</span>
-                <span style="color: #5E6670; font-size: 13px">我</span>
-                <span style="width: 56px; text-align: right; font-size: 13px">15 分钟</span>
-              </li>
-            </ol>
-            <button type="button" style="align-self: flex-start; height: 36px; padding: 0 12px; border: 0; background: transparent; color: #3A5CCC; font-size: 13px; cursor: pointer">+ 添加议程项</button>
+            <div style="display: flex; flex-direction: column; border: 1px solid #ECECE9; border-radius: 10px">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #F0F1F3; flex-wrap: wrap">
+                <span style="width: 18px; height: 18px; box-sizing: border-box; border-radius: 9px; border: 1.5px solid #9AA1AB; flex: none"></span>
+                <span style="flex: 1; min-width: 160px">整理新版首页的数据口径</span>
+                <span style="font-size: 13px; color: #3F4650">我负责</span>
+                <span style="font-size: 13px; color: #B3261E">逾期 1 天</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; flex-wrap: wrap">
+                <span style="width: 18px; height: 18px; box-sizing: border-box; border-radius: 9px; border: 1.5px dashed #9AA1AB; flex: none"></span>
+                <span style="flex: 1; min-width: 160px">确认埋点方案</span>
+                <span style="font-size: 13px; color: #3F4650">李娜负责 · 我跟进</span>
+                <span style="font-size: 13px; color: #5E6670">会上问一下</span>
+              </div>
+            </div>
+          </section>
+
+          <section style="display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600">会前备注</h2>
+              <span style="font-size: 13px; color: #5E6670">想问的问题、要带的东西。开会时会显示在记录页旁边。</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <div style="display: flex; align-items: center; gap: 10px; min-height: 36px">
+                <span style="width: 6px; height: 6px; border-radius: 3px; background: #3A5CCC; flex: none"></span>
+                <span>问清首页灰度从哪天开始</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; min-height: 36px">
+                <span style="width: 6px; height: 6px; border-radius: 3px; background: #3A5CCC; flex: none"></span>
+                <span>带上上周的数据截图</span>
+              </div>
+            </div>
+            <label for="prep-note" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">添加会前备注</label>
+            <input id="prep-note" placeholder="+ 添加一条，回车保存" style="box-sizing: border-box; height: 44px; padding: 0 12px; border: 1px solid #E1E3E8; border-radius: 8px; font-size: 14px; color: #1F2328; width: 100%">
           </section>
 
           <section style="display: flex; flex-direction: column; gap: 10px">
             <h2 style="margin: 0; font-size: 16px; font-weight: 600">会议资料</h2>
             <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid #ECECE9; border-radius: 10px; color: #1F2328; text-decoration: none">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6670" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
-              <span style="flex: 1">新版首页方案 v3（腾讯文档）</span><span style="font-size: 12px; color: #5E6670">张伟 添加</span>
+              <span style="flex: 1">新版首页方案 v3（腾讯文档）</span><span style="font-size: 12px; color: #5E6670">从邀请里带入</span>
             </a>
-            <button type="button" style="align-self: flex-start; height: 36px; padding: 0 12px; border: 0; background: transparent; color: #3A5CCC; font-size: 13px; cursor: pointer">+ 添加链接或文件</button>
           </section>
         </div>
 
         <aside style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
-          <section style="border: 1px solid #ECECE9; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+          <section style="border: 1px solid #ECECE9; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
             <h2 style="margin: 0; font-size: 14px; font-weight: 600">参会人 · 6</h2>
-            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px">
-              <span style="display: flex; justify-content: space-between"><span>我（记录人）</span><span style="color: #8A4B12">会议室</span></span>
-              <span style="display: flex; justify-content: space-between"><span>张伟</span><span style="color: #8A4B12">会议室</span></span>
-              <span style="display: flex; justify-content: space-between"><span>李娜</span><span style="color: #8A4B12">会议室</span></span>
-              <span style="display: flex; justify-content: space-between"><span>王强</span><span style="color: #2B479F">腾讯会议</span></span>
-              <span style="display: flex; justify-content: space-between"><span>赵敏</span><span style="color: #2B479F">腾讯会议</span></span>
-              <span style="display: flex; justify-content: space-between"><span>陈杰</span><span style="color: #5E6670">待确认</span></span>
-            </div>
+            <span style="font-size: 13px; color: #3F4650; line-height: 22px">张伟（发起人）、李娜、王强、赵敏、陈杰、我</span>
+            <span style="font-size: 12px; color: #5E6670">记录时输入 @ 可直接选人</span>
           </section>
           <section style="border: 1px solid #ECECE9; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; font-size: 13px">
             <h2 style="margin: 0; font-size: 14px; font-weight: 600">提醒</h2>
@@ -127,8 +126,8 @@ button{font-family:inherit}
           </section>
           <section style="border: 1px solid #ECECE9; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; font-size: 13px">
             <h2 style="margin: 0; font-size: 14px; font-weight: 600">往期纪要</h2>
-            <a href="Minutes.dc.html" style="text-decoration: none">10月15日 · 4 条决议 · 4 条待办</a>
-            <a href="Minutes.dc.html" style="text-decoration: none">10月8日 · 2 条决议 · 3 条待办</a>
+            <a href="Minutes.dc.html" style="text-decoration: none">10月15日 · 4 条决议 · 我的待办 2 条</a>
+            <a href="Minutes.dc.html" style="text-decoration: none">10月8日 · 2 条决议 · 我的待办 1 条</a>
           </section>
         </aside>
 

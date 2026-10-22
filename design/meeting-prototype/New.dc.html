@@ -82,23 +82,10 @@ input::placeholder,textarea::placeholder{color:#8A9099}
         </div>
       </section>
 
-      <section style="display: flex; flex-direction: column; gap: 12px">
-        <div style="display: flex; justify-content: space-between; align-items: baseline">
-          <h2 style="margin: 0; font-size: 16px; font-weight: 600">议程</h2>
-          <span style="font-size: 13px; color: #5E6670">合计 55 / 60 分钟</span>
-        </div>
-        <div style="display: flex; flex-direction: column; border: 1px solid #ECECE9; border-radius: 10px">
-          <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #F0F1F3">
-            <span style="width: 20px; color: #5E6670">1</span><span style="flex: 1">供应商介绍方案</span><span style="color: #5E6670; font-size: 13px">供应商</span><span style="width: 56px; text-align: right; font-size: 13px">20 分钟</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #F0F1F3">
-            <span style="width: 20px; color: #5E6670">2</span><span style="flex: 1">问题与报价讨论</span><span style="color: #5E6670; font-size: 13px">我</span><span style="width: 56px; text-align: right; font-size: 13px">25 分钟</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px">
-            <span style="width: 20px; color: #5E6670">3</span><span style="flex: 1">下一步与分工</span><span style="color: #5E6670; font-size: 13px">我</span><span style="width: 56px; text-align: right; font-size: 13px">10 分钟</span>
-          </div>
-        </div>
-        <button type="button" style="align-self: flex-start; height: 36px; padding: 0 12px; border: 0; background: transparent; color: #3A5CCC; font-size: 13px; cursor: pointer">+ 添加议程项</button>
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <label for="prep-note" style="font-size: 16px; font-weight: 600">会前备注 <span style="font-size: 13px; font-weight: 400; color: #5E6670">（可选）</span></label>
+        <span style="font-size: 13px; color: #5E6670">想问的问题、要带的东西。开会时会显示在记录页旁边。</span>
+        <input id="prep-note" placeholder="例如：问清报价里含不含售后" style="box-sizing: border-box; height: 44px; padding: 0 12px; border: 1px solid #E1E3E8; border-radius: 8px; font-size: 14px; color: #1F2328; width: 100%">
       </section>
 
       <section style="display: flex; flex-direction: column; gap: 10px">
@@ -113,7 +100,7 @@ input::placeholder,textarea::placeholder{color:#8A9099}
         </label>
         <label style="display: flex; align-items: center; gap: 10px; min-height: 36px">
           <input type="checkbox" style="width: 18px; height: 18px; accent-color: #3A5CCC">
-          这是例会（每周 / 每两周重复，待办自动延续到下一次）
+          这是例会（每周 / 每两周重复，上次留下的待办会在下一次自动显示）
         </label>
       </section>
 
