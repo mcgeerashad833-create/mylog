@@ -6,11 +6,11 @@ import { dueReminders, meetingStatus, startAt, timeRange, whereLabel } from './l
 import { isAlive, restoreTask, toggleDone } from './store'
 import { ensureSeries, updateMeeting } from './meetings'
 import { DetailDrawer } from './components/DetailDrawer'
-import { CalendarIcon, InboxIcon, SunIcon, TodoIcon, VideoIcon } from './components/Icons'
+import { CalendarIcon, ChartIcon, InboxIcon, SunIcon, TodoIcon, VideoIcon } from './components/Icons'
 import { InboxView, LaterView, TodayView, selectToday, type ViewProps } from './views/views'
-import { ActionsView, MeetingsSection, type MeetingProps, type MeetingRoute } from './views/meetings'
+import { ActionsView, MeetingsSection, StatsView, type MeetingProps, type MeetingRoute } from './views/meetings'
 
-type View = 'today' | 'inbox' | 'later' | 'meetings' | 'actions'
+type View = 'today' | 'inbox' | 'later' | 'meetings' | 'actions' | 'stats'
 
 interface Toast {
   text: string
@@ -135,6 +135,7 @@ export function App() {
     later: tasks.filter((t) => !t.done && t.date !== null && t.date > today).length,
     meetings: meetings.filter((m) => m.date === today && ['upcoming', 'ongoing', 'recording'].includes(meetingStatus(m, now))).length,
     actions: tasks.filter((t) => t.meetingId && !t.done).length,
+    stats: 0,
   }
 
   const props: ViewProps = {
@@ -168,6 +169,7 @@ export function App() {
   const meetingNav: { id: View; label: string; icon: typeof SunIcon }[] = [
     { id: 'meetings', label: '会议日程', icon: VideoIcon },
     { id: 'actions', label: '会议待办', icon: TodoIcon },
+    { id: 'stats', label: '会议统计', icon: ChartIcon },
   ]
   const navButton = ({ id, label, icon: Icon }: (typeof nav)[number]) => (
     <button
@@ -210,6 +212,7 @@ export function App() {
         {view === 'later' && <LaterView {...props} />}
         {view === 'meetings' && <MeetingsSection {...meetingProps} route={route} onOpenActions={() => setView('actions')} />}
         {view === 'actions' && <ActionsView {...meetingProps} />}
+        {view === 'stats' && <StatsView {...meetingProps} />}
       </main>
 
       {selected && (

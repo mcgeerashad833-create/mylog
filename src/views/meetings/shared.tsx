@@ -35,6 +35,19 @@ export async function copyText(text: string, onNotice: (text: string) => void, d
   }
 }
 
+/** 让浏览器下载一个文本文件 */
+export function downloadText(name: string, text: string, type: string): void {
+  const url = URL.createObjectURL(new Blob([text], { type }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  // 有的浏览器要求链接在页面里，download 文件名才生效；文件名用英文，中文名可能被浏览器丢掉
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 export function BackLink({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button className="back" onClick={onClick}>

@@ -120,3 +120,8 @@ export const SearchIcon = (p: P) => (
     <path d="m20 20-3.5-3.5" />
   </Svg>
 )
+export const ChartIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 20h16M7 16v-5M12 16V6M17 16v-8" />
+  </Svg>
+)

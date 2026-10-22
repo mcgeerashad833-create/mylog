@@ -5,7 +5,8 @@ import { isMine, isOthers, joinText, meetingStatus, statusLabel, timeRange } fro
 import { deleteMeeting, restoreMeeting } from '../../meetings'
 import { ClockIcon, CopyIcon, PinIcon, VideoIcon } from '../../components/Icons'
 import { REPEAT_LABEL } from '../../lib/series'
-import { BackLink, KindBadge, copyText, type MeetingProps } from './shared'
+import { toIcs } from '../../lib/ics'
+import { BackLink, KindBadge, copyText, downloadText, type MeetingProps } from './shared'
 import { CarryOverList, PrepList } from './parts'
 
 export function DetailView({ m, ...p }: MeetingProps & { m: Meeting }) {
@@ -104,9 +105,22 @@ export function DetailView({ m, ...p }: MeetingProps & { m: Meeting }) {
         >
           删除会议
         </button>
-        <button className="btn tall" onClick={() => p.go({ page: 'edit', id: m.id })}>
-          编辑
-        </button>
+        <div className="btn-row">
+          <button
+            className="btn tall"
+            onClick={() => {
+              // 例会把整个系列一起导出，日历里会继续重复
+              const list = m.seriesId ? p.meetings.filter((x) => x.seriesId === m.seriesId) : [m]
+              downloadText(`mylog-${m.date}.ics`, toIcs(list), 'text/calendar')
+              p.onNotice('已下载日历文件，双击就能导入系统日历')
+            }}
+          >
+            加到日历
+          </button>
+          <button className="btn tall" onClick={() => p.go({ page: 'edit', id: m.id })}>
+            编辑
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -11,10 +11,11 @@ import {
   type MeetingStatus,
 } from '../../lib/meeting'
 import { updateMeeting } from '../../meetings'
-import { CopyIcon, PlusIcon, SearchIcon, VideoIcon } from '../../components/Icons'
+import { CalendarIcon, CopyIcon, PlusIcon, SearchIcon, VideoIcon } from '../../components/Icons'
 import { highlight, searchMeetings, searchTerms } from '../../lib/search'
 import { NOTE_LABEL } from '../../lib/meeting'
-import { KindBadge, copyText, type MeetingProps } from './shared'
+import { toIcs } from '../../lib/ics'
+import { KindBadge, copyText, downloadText, type MeetingProps } from './shared'
 
 type Range = 'today' | 'week' | 'all'
 
@@ -68,10 +69,23 @@ export function ListView(p: MeetingProps & { onOpenActions: () => void }) {
                 {longLabel(p.today)} · 今天 {todays.length} 场
               </span>
             </div>
-            <button className="btn primary tall" onClick={() => p.go({ page: 'new' })}>
-              <PlusIcon size={16} />
-              新建会议
-            </button>
+            <div className="btn-row">
+              <button
+                className="btn tall"
+                disabled={p.meetings.length === 0}
+                onClick={() => {
+                  downloadText('mylog-meetings.ics', toIcs(p.meetings), 'text/calendar')
+                  p.onNotice('已下载日历文件，双击就能导入系统日历')
+                }}
+              >
+                <CalendarIcon size={16} />
+                导出日历
+              </button>
+              <button className="btn primary tall" onClick={() => p.go({ page: 'new' })}>
+                <PlusIcon size={16} />
+                新建会议
+              </button>
+            </div>
           </header>
           <span className="tiny" style={{ marginTop: -12 }}>
             收到腾讯会议邀请？在任意页面按 Ctrl K，把邀请整段粘贴进来就能识别。

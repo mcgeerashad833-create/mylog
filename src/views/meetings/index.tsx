@@ -6,6 +6,7 @@ import { MinutesView } from './MinutesView'
 import { NotFound, type MeetingProps, type MeetingRoute } from './shared'
 
 export { ActionsView } from './ActionsView'
+export { StatsView } from './StatsView'
 export type { MeetingProps, MeetingRoute } from './shared'
 
 export function MeetingsSection(p: MeetingProps & { route: MeetingRoute; onOpenActions: () => void }) {
