@@ -31,7 +31,25 @@ export async function copyText(text: string, onNotice: (text: string) => void, d
     await navigator.clipboard.writeText(text)
     onNotice(done)
   } catch {
-    onNotice('复制失败，请手动复制')
+    // 通过 http://IP 访问时没有 navigator.clipboard，退回老办法：选中一个隐藏的文本框再复制
+    onNotice(legacyCopy(text) ? done : '复制失败，请手动复制')
+  }
+}
+
+function legacyCopy(text: string): boolean {
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.setAttribute('readonly', '')
+  ta.style.position = 'fixed'
+  ta.style.opacity = '0'
+  document.body.appendChild(ta)
+  ta.select()
+  try {
+    return document.execCommand('copy')
+  } catch {
+    return false
+  } finally {
+    ta.remove()
   }
 }
 

@@ -3,8 +3,8 @@ import { longLabel, todayKey } from './lib/date'
 import { isMine, taskDateFor, type NoteInput } from './lib/meeting'
 import { seriesToExtend } from './lib/series'
 import { addTask, deleteTask, touch, updateTask } from './store'
+import { uid } from './lib/uid'
 
-const uid = () => crypto.randomUUID()
 const now = () => new Date().toISOString()
 
 /**
