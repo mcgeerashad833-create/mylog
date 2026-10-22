@@ -21,6 +21,8 @@ export interface Invite {
   meetingNo?: string
   password?: string
   link?: string
+  /** 腾讯会议的周期性会议 */
+  repeat?: 'weekly' | 'biweekly'
 }
 
 function hm(s: string): string {
@@ -55,6 +57,9 @@ export function parseInvite(text: string): Invite {
 
   const link = text.match(/https?:\/\/(?:[\w-]+\.)*(?:meeting\.tencent\.com|voovmeeting\.com)\/[^\s，。]+/)
   if (link) out.link = link[0]
+
+  const rep = text.match(/重复(?:周期|频率)?\s*[:：]\s*每\s*(两|2|二)?\s*周/)
+  if (rep) out.repeat = rep[1] ? 'biweekly' : 'weekly'
 
   return out
 }

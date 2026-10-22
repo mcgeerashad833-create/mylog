@@ -4,7 +4,7 @@ import { db, type Meeting, type Task } from './db'
 import { todayKey } from './lib/date'
 import { dueReminders, meetingStatus, startAt, timeRange, whereLabel } from './lib/meeting'
 import { isAlive, restoreTask, toggleDone } from './store'
-import { updateMeeting } from './meetings'
+import { ensureSeries, updateMeeting } from './meetings'
 import { DetailDrawer } from './components/DetailDrawer'
 import { CalendarIcon, InboxIcon, SunIcon, TodoIcon, VideoIcon } from './components/Icons'
 import { InboxView, LaterView, TodayView, selectToday, type ViewProps } from './views/views'
@@ -117,6 +117,11 @@ export function App() {
     window.scrollTo(0, 0)
   }, [])
   useMeetingReminders(meetings, now, setToast, openMeeting)
+
+  // 例会：打开时和跨天时补建下一次
+  useEffect(() => {
+    void ensureSeries(today)
+  }, [today])
 
   const onToggle = (t: Task) => {
     void toggleDone(t)

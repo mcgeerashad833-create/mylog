@@ -4,7 +4,9 @@ import { formatMeetingNo } from '../../lib/invite'
 import { isMine, isOthers, joinText, meetingStatus, statusLabel, timeRange } from '../../lib/meeting'
 import { deleteMeeting, restoreMeeting } from '../../meetings'
 import { ClockIcon, CopyIcon, PinIcon, VideoIcon } from '../../components/Icons'
+import { REPEAT_LABEL } from '../../lib/series'
 import { BackLink, KindBadge, copyText, type MeetingProps } from './shared'
+import { CarryOverList, PrepList } from './parts'
 
 export function DetailView({ m, ...p }: MeetingProps & { m: Meeting }) {
   const st = meetingStatus(m, p.now)
@@ -20,6 +22,7 @@ export function DetailView({ m, ...p }: MeetingProps & { m: Meeting }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <h1 className="page-title">{m.title}</h1>
           <KindBadge kind={m.kind} />
+          {m.repeat !== 'none' && <span className="badge">例会 · {REPEAT_LABEL[m.repeat]}</span>}
           <span className="badge">{statusLabel(m, p.now)}</span>
         </div>
         <div className="info-lines">
@@ -64,6 +67,9 @@ export function DetailView({ m, ...p }: MeetingProps & { m: Meeting }) {
           )}
         </div>
       </header>
+
+      <CarryOverList m={m} {...p} />
+      <PrepList m={m} />
 
       <section className="card">
         <h2>记录</h2>

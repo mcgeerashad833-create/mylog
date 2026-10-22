@@ -39,6 +39,12 @@ describe('parseInvite', () => {
     expect(parseInvite('会议时间：2026/10/22 14:00 (GMT+08:00)')).toMatchObject({ start: '14:00' })
   })
 
+  it('周期性会议', () => {
+    expect(parseInvite('会议主题：周会\n重复周期：每周四').repeat).toBe('weekly')
+    expect(parseInvite('重复周期：每两周 (周四)').repeat).toBe('biweekly')
+    expect(parseInvite('重复：每 2 周').repeat).toBe('biweekly')
+  })
+
   it('普通文字什么都识别不出', () => {
     expect(parseInvite('明天下午3点 给物业打电话')).toEqual({})
   })

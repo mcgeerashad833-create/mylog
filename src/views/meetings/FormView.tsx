@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react'
-import type { Meeting, MeetingKind } from '../../db'
+import type { Meeting, MeetingKind, Repeat } from '../../db'
 import { nowHM } from '../../lib/date'
 import { parseInvite, formatMeetingNo, type Invite } from '../../lib/invite'
 import { KIND_LABEL } from '../../lib/meeting'
-import { addMeeting, updateMeeting, type MeetingFields } from '../../meetings'
+import { REPEAT_LABEL } from '../../lib/series'
+import { addMeeting, editMeeting, ensureSeries, type MeetingFields } from '../../meetings'
 import { CheckIcon } from '../../components/Icons'
 import { BackLink, type MeetingProps } from './shared'
 
@@ -37,6 +38,7 @@ function fromMeeting(m: Meeting): Draft {
     password: m.password ?? '',
     link: m.link ?? '',
     remindBefore: m.remindBefore,
+    repeat: m.repeat,
   }
 }
 
@@ -50,12 +52,13 @@ function applyInvite(d: Draft, inv: Invite): Draft {
     meetingNo: inv.meetingNo ? formatMeetingNo(inv.meetingNo) : d.meetingNo,
     password: inv.password ?? d.password,
     link: inv.link ?? d.link,
+    repeat: inv.repeat ?? d.repeat,
     // 线下会议粘贴了邀请，说明也能用腾讯会议接入
     kind: d.kind === 'offline' ? 'hybrid' : d.kind,
   }
 }
 
-const INVITE_KEYS: (keyof Invite)[] = ['title', 'date', 'start', 'end', 'meetingNo', 'password', 'link']
+const INVITE_KEYS: (keyof Invite)[] = ['title', 'date', 'start', 'end', 'meetingNo', 'password', 'link', 'repeat']
 
 export function FormView(p: MeetingProps & { editing?: Meeting; invite?: string }) {
   const initialInvite = p.invite ? parseInvite(p.invite) : null
@@ -72,6 +75,7 @@ export function FormView(p: MeetingProps & { editing?: Meeting; invite?: string 
         password: '',
         link: '',
         remindBefore: defaultRemind('online'),
+        repeat: 'none',
       }
   const [d, setD] = useState<Draft>(initialInvite ? applyInvite(base, initialInvite) : base)
   const [inviteText, setInviteText] = useState(p.invite ?? '')
@@ -79,6 +83,7 @@ export function FormView(p: MeetingProps & { editing?: Meeting; invite?: string 
     new Set(initialInvite ? INVITE_KEYS.filter((k) => initialInvite[k]) : []),
   )
   const [remindTouched, setRemindTouched] = useState(!!p.editing)
+  const [prepText, setPrepText] = useState('')
   const [error, setError] = useState('')
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
@@ -122,14 +127,19 @@ export function FormView(p: MeetingProps & { editing?: Meeting; invite?: string 
       password: d.kind !== 'offline' ? d.password.trim() || null : null,
       link: d.kind !== 'offline' ? d.link.trim() || null : null,
       remindBefore: d.remindBefore,
+      repeat: d.repeat,
     }
     if (p.editing) {
-      const timeChanged = fields.date !== p.editing.date || fields.start !== p.editing.start
-      // 改了时间就重新提醒
-      await updateMeeting(p.editing.id, timeChanged ? { ...fields, remindedAt: null } : fields)
+      await editMeeting(p.editing, fields, p.today)
       p.go({ page: 'detail', id: p.editing.id })
     } else {
-      const m = await addMeeting(fields)
+      const prep = prepText
+        .split('\n')
+        .map((x) => x.trim())
+        .filter(Boolean)
+      const m = await addMeeting(fields, prep)
+      // 日期填在过去的例会，顺手把下一次建出来
+      if (fields.repeat !== 'none') await ensureSeries(p.today)
       p.go({ page: 'detail', id: m.id })
     }
   }
@@ -229,7 +239,7 @@ export function FormView(p: MeetingProps & { editing?: Meeting; invite?: string 
       </section>
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <h2 className="section-title">提醒</h2>
+        <h2 className="section-title">提醒与重复</h2>
         <div className="field-inline">
           <label htmlFor="mf-remind">会前</label>
           <select
@@ -249,7 +259,43 @@ export function FormView(p: MeetingProps & { editing?: Meeting; invite?: string 
           {d.kind === 'offline' && <span className="tiny">线下会议多留几分钟走过去</span>}
         </div>
         <span className="tiny">开始记录过的会，结束 30 分钟后还没整理纪要，会再提醒一次。</span>
+        <div className="field-inline" style={{ marginTop: 6 }}>
+          <label htmlFor="mf-repeat">重复</label>
+          <select id="mf-repeat" value={d.repeat} onChange={(e) => set('repeat', e.target.value as Repeat)}>
+            {(Object.keys(REPEAT_LABEL) as Repeat[]).map((r) => (
+              <option key={r} value={r}>
+                {r === 'none' ? '不重复' : `${REPEAT_LABEL[r]}（例会）`}
+              </option>
+            ))}
+          </select>
+          {recognized.has('repeat') && <span className="badge kind-online">已识别</span>}
+        </div>
+        {d.repeat !== 'none' && (
+          <span className="tiny">例会会自动生成下一次；上次留下、还没完成的待办会在下一次的详情和记录页里显示。</span>
+        )}
+        {p.editing?.seriesId && (
+          <span className="tiny">
+            {d.repeat === 'none' ? '改成不重复后，以后还没开的几次会删掉。' : '主题、时间、地点、会议号会同步修改到以后还没开的几次。'}
+          </span>
+        )}
       </section>
+
+      {!p.editing && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label htmlFor="mf-prep" className="section-title">
+            会前备注 <span className="tiny" style={{ fontWeight: 400 }}>（可选）</span>
+          </label>
+          <span className="tiny">想问的问题、要带的东西，一行一条。开会时会显示在记录页旁边。</span>
+          <textarea
+            id="mf-prep"
+            className="note"
+            rows={3}
+            value={prepText}
+            placeholder="例如：问清首页灰度从哪天开始"
+            onChange={(e) => setPrepText(e.target.value)}
+          />
+        </section>
+      )}
 
       {error && (
         <div role="alert" className="error-line">

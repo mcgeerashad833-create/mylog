@@ -1,9 +1,19 @@
 import { useState } from 'react'
 import type { Meeting } from '../../db'
 import { addDays, diffDays, fromKey, longLabel, relativeLabel } from '../../lib/date'
-import { meetingStatus, startAt, statusLabel, timeRange, whereLabel, joinText, type MeetingStatus } from '../../lib/meeting'
+import {
+  meetingStatus,
+  startAt,
+  statusLabel,
+  timeRange,
+  whereLabel,
+  joinText,
+  type MeetingStatus,
+} from '../../lib/meeting'
 import { updateMeeting } from '../../meetings'
-import { CopyIcon, PlusIcon, VideoIcon } from '../../components/Icons'
+import { CopyIcon, PlusIcon, SearchIcon, VideoIcon } from '../../components/Icons'
+import { highlight, searchMeetings, searchTerms } from '../../lib/search'
+import { NOTE_LABEL } from '../../lib/meeting'
 import { KindBadge, copyText, type MeetingProps } from './shared'
 
 type Range = 'today' | 'week' | 'all'
@@ -21,6 +31,7 @@ const byStart = (a: Meeting, b: Meeting) => startAt(a).getTime() - startAt(b).ge
 
 export function ListView(p: MeetingProps & { onOpenActions: () => void }) {
   const [range, setRange] = useState<Range>('today')
+  const [query, setQuery] = useState('')
   const todays = p.meetings.filter((m) => m.date === p.today).sort(byStart)
 
   // 本周按周一到周日算
@@ -66,57 +77,81 @@ export function ListView(p: MeetingProps & { onOpenActions: () => void }) {
             收到腾讯会议邀请？在任意页面按 Ctrl K，把邀请整段粘贴进来就能识别。
           </span>
 
-          {next && <NextCard m={next} {...p} />}
-
-          <div className="segmented" role="group" aria-label="范围">
-            {(
-              [
-                ['today', '今天'],
-                ['week', '本周'],
-                ['all', '全部'],
-              ] as const
-            ).map(([id, label]) => (
-              <button key={id} aria-pressed={range === id} onClick={() => setRange(id)}>
-                {label}
-              </button>
-            ))}
+          <div className="search-box">
+            <SearchIcon size={16} color="var(--text-2)" />
+            <label htmlFor="meeting-search" className="sr-only">
+              搜索会议和纪要
+            </label>
+            <input
+              id="meeting-search"
+              type="search"
+              value={query}
+              placeholder="搜索会议、决议、待办，例如：周会 预算"
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && setQuery('')}
+            />
           </div>
 
-          {groups.length === 0 && (
-            <div className="empty">
-              <strong>{range === 'today' ? '今天没有会议' : '这段时间没有会议'}</strong>
-              <span style={{ fontSize: 13 }}>点「新建会议」，或者把腾讯会议邀请粘贴进来。</span>
-            </div>
-          )}
+          {query.trim() && <SearchResults query={query} {...p} />}
+          {!query.trim() && next && <NextCard m={next} {...p} />}
 
-          {groups.map((g) => (
-            <section key={g.date} aria-label={longLabel(g.date)}>
-              <h2 className="group-title">
-                {relativeLabel(g.date, p.today)}
-                <span className="tiny" style={{ fontWeight: 400, fontSize: 13 }}>
-                  {longLabel(g.date)}
-                </span>
-              </h2>
-              <div className="list">
-                {g.items.map((m) => {
-                  const st = meetingStatus(m, p.now)
-                  return (
-                    <button key={m.id} className={'meeting-row' + (st === 'done' || st === 'ended' ? ' faded' : '')} onClick={() => p.go({ page: 'detail', id: m.id })}>
-                      <span className="meeting-time">{timeRange(m)}</span>
-                      <span className="meeting-body">
-                        <span className="meeting-title">
-                          {m.title}
-                          <KindBadge kind={m.kind} />
-                        </span>
-                        <span className="tiny">{whereLabel(m)}</span>
-                      </span>
-                      <span className={'meeting-status ' + STATUS_CLASS[st]}>{statusLabel(m, p.now)}</span>
-                    </button>
-                  )
-                })}
+          {!query.trim() && (
+            <>
+              <div className="segmented" role="group" aria-label="范围">
+                {(
+                  [
+                    ['today', '今天'],
+                    ['week', '本周'],
+                    ['all', '全部'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button key={id} aria-pressed={range === id} onClick={() => setRange(id)}>
+                    {label}
+                  </button>
+                ))}
               </div>
-            </section>
-          ))}
+
+              {groups.length === 0 && (
+                <div className="empty">
+                  <strong>{range === 'today' ? '今天没有会议' : '这段时间没有会议'}</strong>
+                  <span style={{ fontSize: 13 }}>点「新建会议」，或者把腾讯会议邀请粘贴进来。</span>
+                </div>
+              )}
+
+              {groups.map((g) => (
+                <section key={g.date} aria-label={longLabel(g.date)}>
+                  <h2 className="group-title">
+                    {relativeLabel(g.date, p.today)}
+                    <span className="tiny" style={{ fontWeight: 400, fontSize: 13 }}>
+                      {longLabel(g.date)}
+                    </span>
+                  </h2>
+                  <div className="list">
+                    {g.items.map((m) => {
+                      const st = meetingStatus(m, p.now)
+                      return (
+                        <button
+                          key={m.id}
+                          className={'meeting-row' + (st === 'done' || st === 'ended' ? ' faded' : '')}
+                          onClick={() => p.go({ page: 'detail', id: m.id })}
+                        >
+                          <span className="meeting-time">{timeRange(m)}</span>
+                          <span className="meeting-body">
+                            <span className="meeting-title">
+                              {m.title}
+                              <KindBadge kind={m.kind} />
+                            </span>
+                            <span className="tiny">{whereLabel(m)}</span>
+                          </span>
+                          <span className={'meeting-status ' + STATUS_CLASS[st]}>{statusLabel(m, p.now)}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </section>
+              ))}
+            </>
+          )}
         </div>
 
         <aside className="split-side">
@@ -159,8 +194,12 @@ export function ListView(p: MeetingProps & { onOpenActions: () => void }) {
               <div key={t.id} className="card-item">
                 <span>{t.title}</span>
                 <span className={'tiny' + (t.date && t.date < p.today ? ' late' : '')}>
-                  {t.date ? (t.date < p.today ? relativeLabel(t.date, p.today) + '遗留' : relativeLabel(t.date, p.today)) : '收集箱'} · 来自{' '}
-                  {meetingTitle(t.meetingId)}
+                  {t.date
+                    ? t.date < p.today
+                      ? relativeLabel(t.date, p.today) + '遗留'
+                      : relativeLabel(t.date, p.today)
+                    : '收集箱'}{' '}
+                  · 来自 {meetingTitle(t.meetingId)}
                 </span>
               </div>
             ))}
@@ -207,6 +246,58 @@ function NextCard({ m, ...p }: MeetingProps & { m: Meeting }) {
           详情
         </button>
       </div>
+    </section>
+  )
+}
+
+function Marked({ text, terms }: { text: string; terms: string[] }) {
+  return (
+    <>
+      {highlight(text, terms).map((part, i) =>
+        part.hit ? <mark key={i}>{part.text}</mark> : <span key={i}>{part.text}</span>,
+      )}
+    </>
+  )
+}
+
+function SearchResults({ query, ...p }: MeetingProps & { query: string }) {
+  const terms = searchTerms(query)
+  const hits = searchMeetings(p.meetings, query)
+  const count = hits.reduce((n, h) => n + h.notes.length, 0)
+  return (
+    <section aria-label="搜索结果" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <span className="tiny" role="status">
+        {hits.length === 0 ? '没有找到。换个词试试，多个词用空格分开。' : `${hits.length} 场会议 · ${count} 条记录`}
+      </span>
+      {hits.map(({ meeting: m, notes }) => (
+        <div key={m.id} className="search-hit">
+          <button
+            className="link-btn search-title"
+            onClick={() => p.go({ page: notes.length ? 'minutes' : 'detail', id: m.id })}
+          >
+            <Marked text={m.title} terms={terms} />
+          </button>
+          <span className="tiny">
+            {longLabel(m.date)} {timeRange(m)}
+            {m.location && ' · '}
+            {m.location && <Marked text={m.location} terms={terms} />}
+          </span>
+          {notes.map((n) => (
+            <div key={n.id} className="search-note">
+              <span className={'tag tag-' + n.type}>{NOTE_LABEL[n.type]}</span>
+              <span>
+                <Marked text={n.text} terms={terms} />
+                {n.owner && (
+                  <span className="tiny">
+                    {' '}
+                    · <Marked text={n.owner === '我' ? '我负责' : '@' + n.owner} terms={terms} />
+                  </span>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      ))}
     </section>
   )
 }

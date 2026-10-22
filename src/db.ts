@@ -54,10 +54,23 @@ export interface MeetingNote {
   syncedDue: string | null
 }
 
+/** 例会的重复方式 */
+export type Repeat = 'none' | 'weekly' | 'biweekly'
+
+/** 会前备注：想问的问题、要带的东西 */
+export interface PrepItem {
+  id: string
+  text: string
+  done: boolean
+}
+
 export interface Meeting {
   id: string
   title: string
   kind: MeetingKind
+  repeat: Repeat
+  /** 同一个例会的每一次共用一个 seriesId；不重复的会为空 */
+  seriesId: string | null
   /** YYYY-MM-DD */
   date: string
   /** HH:mm */
@@ -73,6 +86,7 @@ export interface Meeting {
   /** 会前几分钟提醒，0 表示不提醒 */
   remindBefore: number
   notes: MeetingNote[]
+  prep: PrepItem[]
   startedAt: string | null
   endedAt: string | null
   /** 保存纪要的时间；为空表示还没整理 */
@@ -98,3 +112,18 @@ db.version(2).stores({
   tasks: 'id, date, done, updatedAt, meetingId',
   meetings: 'id, date, updatedAt',
 })
+
+db.version(3)
+  .stores({
+    meetings: 'id, date, updatedAt, seriesId',
+  })
+  .upgrade((tx) =>
+    tx
+      .table('meetings')
+      .toCollection()
+      .modify((m: Meeting) => {
+        m.repeat ??= 'none'
+        m.seriesId ??= null
+        m.prep ??= []
+      }),
+  )

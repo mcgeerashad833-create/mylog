@@ -5,6 +5,7 @@ import { ME, NOTE_LABEL, clock, isMine, isOthers, parseNoteInput } from '../../l
 import { addNote, endRecording, removeNote, restoreNote, startRecording } from '../../meetings'
 import { CloseIcon, VideoIcon } from '../../components/Icons'
 import { BackLink, type MeetingProps } from './shared'
+import { CarryOverList, PrepList } from './parts'
 
 const TYPES: NoteType[] = ['note', 'decision', 'todo', 'question']
 
@@ -178,6 +179,8 @@ export function LiveView({ m, ...p }: MeetingProps & { m: Meeting }) {
         </div>
 
         <aside className="split-side">
+          {m.prep.length > 0 && <PrepList m={m} compact />}
+          <CarryOverList m={m} compact {...p} />
           <section className="card">
             <h2>本场已记</h2>
             <div className="stat-grid">

@@ -1,6 +1,7 @@
-import { db, type Meeting, type MeetingKind, type MeetingNote, type Task } from './db'
+import { db, type Meeting, type MeetingKind, type MeetingNote, type PrepItem, type Repeat, type Task } from './db'
 import { longLabel, todayKey } from './lib/date'
 import { isMine, taskDateFor, type NoteInput } from './lib/meeting'
+import { seriesToExtend } from './lib/series'
 import { addTask, deleteTask, updateTask } from './store'
 
 const uid = () => crypto.randomUUID()
@@ -17,14 +18,18 @@ export interface MeetingFields {
   password: string | null
   link: string | null
   remindBefore: number
+  repeat: Repeat
 }
 
-export async function addMeeting(f: MeetingFields): Promise<Meeting> {
+export async function addMeeting(f: MeetingFields, prep: string[] = []): Promise<Meeting> {
   const ts = now()
+  const id = uid()
   const m: Meeting = {
-    id: uid(),
+    id,
     ...f,
+    seriesId: f.repeat === 'none' ? null : id,
     notes: [],
+    prep: prep.map((text) => ({ id: uid(), text, done: false })),
     startedAt: null,
     endedAt: null,
     summarizedAt: null,
@@ -40,6 +45,72 @@ export async function addMeeting(f: MeetingFields): Promise<Meeting> {
 
 export async function updateMeeting(id: string, patch: Partial<Omit<Meeting, 'id'>>): Promise<void> {
   await db.meetings.update(id, { ...patch, updatedAt: now() })
+}
+
+/** 以后还没开的那几次例会：可以跟着改，也可以直接删掉 */
+async function futureOccurrences(m: Meeting): Promise<Meeting[]> {
+  if (!m.seriesId) return []
+  const all = await db.meetings.where('seriesId').equals(m.seriesId).toArray()
+  return all.filter((x) => x.id !== m.id && x.date > m.date && !x.startedAt && x.notes.length === 0)
+}
+
+/**
+ * 编辑会议。例会的话，主题、时间、地点、会议号这些也同步到以后还没开的几次；
+ * 改了日期或重复方式，以后那几次删掉重新生成；改成不重复就停掉这个例会。
+ */
+export async function editMeeting(m: Meeting, f: MeetingFields, today = todayKey()): Promise<void> {
+  const timeChanged = f.date !== m.date || f.start !== m.start
+  const seriesId = f.repeat === 'none' ? m.seriesId : (m.seriesId ?? m.id)
+  await updateMeeting(m.id, { ...f, seriesId, ...(timeChanged ? { remindedAt: null } : {}) })
+
+  const future = await futureOccurrences({ ...m, seriesId })
+  if (future.length) {
+    if (f.repeat === 'none' || f.repeat !== m.repeat || f.date !== m.date) {
+      // 自动生成的、还没开过的会，直接删掉，不留软删除的占位
+      await db.meetings.bulkDelete(future.map((x) => x.id))
+    } else {
+      const { date: _date, ...shared } = f
+      const changes = { ...shared, ...(f.start !== m.start ? { remindedAt: null } : {}), updatedAt: now() }
+      await db.meetings.bulkUpdate(future.map((x) => ({ key: x.id, changes })))
+    }
+  }
+  await ensureSeries(today)
+}
+
+/** 例会补建下一次：今天或以后没有的话，按重复方式生成一次 */
+export async function ensureSeries(today = todayKey()): Promise<number> {
+  return db.transaction('rw', db.meetings, async () => {
+    const todo = seriesToExtend(await db.meetings.toArray(), today)
+    const ts = now()
+    for (const { from, date } of todo) {
+      await db.meetings.add({
+        id: uid(),
+        title: from.title,
+        kind: from.kind,
+        repeat: from.repeat,
+        seriesId: from.seriesId,
+        date,
+        start: from.start,
+        end: from.end,
+        location: from.location,
+        meetingNo: from.meetingNo,
+        password: from.password,
+        link: from.link,
+        remindBefore: from.remindBefore,
+        notes: [],
+        prep: [],
+        startedAt: null,
+        endedAt: null,
+        summarizedAt: null,
+        remindedAt: null,
+        nudgedAt: null,
+        createdAt: ts,
+        updatedAt: ts,
+        deletedAt: null,
+      })
+    }
+    return todo.length
+  })
 }
 
 export async function deleteMeeting(id: string): Promise<void> {
@@ -67,6 +138,32 @@ async function editNotes(id: string, fn: (notes: MeetingNote[]) => MeetingNote[]
     if (!m) return
     await db.meetings.update(id, { notes: fn(m.notes), updatedAt: now() })
   })
+}
+
+async function editPrep(id: string, fn: (prep: PrepItem[]) => PrepItem[]): Promise<void> {
+  await db.transaction('rw', db.meetings, async () => {
+    const m = await db.meetings.get(id)
+    if (!m) return
+    await db.meetings.update(id, { prep: fn(m.prep), updatedAt: now() })
+  })
+}
+
+export async function addPrep(meetingId: string, text: string): Promise<void> {
+  await editPrep(meetingId, (prep) => [...prep, { id: uid(), text, done: false }])
+}
+
+export async function togglePrep(meetingId: string, prepId: string): Promise<void> {
+  await editPrep(meetingId, (prep) => prep.map((p) => (p.id === prepId ? { ...p, done: !p.done } : p)))
+}
+
+export async function removePrep(meetingId: string, prepId: string): Promise<void> {
+  await editPrep(meetingId, (prep) => prep.filter((p) => p.id !== prepId))
+}
+
+/** 导入腾讯会议智能纪要：一次加入多条，时间点记在最后 */
+export async function importNotes(meetingId: string, inputs: NoteInput[], at: number): Promise<void> {
+  const added = inputs.map((input): MeetingNote => ({ id: uid(), ...input, at, done: false, taskId: null, syncedDue: null }))
+  await editNotes(meetingId, (notes) => [...notes, ...added])
 }
 
 export async function addNote(meetingId: string, input: NoteInput, at: number): Promise<MeetingNote> {

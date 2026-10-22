@@ -1,10 +1,22 @@
 import { useState } from 'react'
 import type { Meeting, MeetingNote, NoteType, Task } from '../../db'
 import { longLabel, relativeLabel } from '../../lib/date'
-import { KIND_LABEL, NOTE_LABEL, isMine, isOthers, parseNoteInput, timeRange, whereLabel } from '../../lib/meeting'
-import { addNote, removeNote, restoreNote, saveMinutes, updateNote } from '../../meetings'
-import { CheckIcon, CloseIcon } from '../../components/Icons'
-import { BackLink, type MeetingProps } from './shared'
+import {
+  KIND_LABEL,
+  NOTE_LABEL,
+  isMine,
+  isOthers,
+  parseNoteInput,
+  timeRange,
+  whereLabel,
+  type NoteInput,
+} from '../../lib/meeting'
+import { isDuplicate, parseImported } from '../../lib/importMinutes'
+import { minutesText, todoTail } from '../../lib/minutes'
+import { addNote, importNotes, removeNote, restoreNote, saveMinutes, updateNote } from '../../meetings'
+import { CheckIcon, CloseIcon, CopyIcon } from '../../components/Icons'
+import { BackLink, copyText, type MeetingProps } from './shared'
+import { NoteMeta } from './LiveView'
 
 const SECTIONS: { type: NoteType; title: string; add: string }[] = [
   { type: 'decision', title: '决议', add: '添加决议' },
@@ -24,6 +36,7 @@ function whereTask(n: MeetingNote, task: Task | undefined, today: string): strin
 
 export function MinutesView({ m, ...p }: MeetingProps & { m: Meeting }) {
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
   const taskOf = (n: MeetingNote) => (n.taskId ? p.tasks.find((t) => t.id === n.taskId) : undefined)
   const noOwner = m.notes.filter((n) => n.type === 'todo' && !n.owner).length
   const unsynced = m.notes.some((n) =>
@@ -36,11 +49,9 @@ export function MinutesView({ m, ...p }: MeetingProps & { m: Meeting }) {
     const r = await saveMinutes(m.id, p.today)
     setSaving(false)
     const mine = r.today + r.later + r.inbox
-    const parts = [
-      r.today && `今天 ${r.today}`,
-      r.later && `以后 ${r.later}`,
-      r.inbox && `收集箱 ${r.inbox}`,
-    ].filter(Boolean)
+    const parts = [r.today && `今天 ${r.today}`, r.later && `以后 ${r.later}`, r.inbox && `收集箱 ${r.inbox}`].filter(
+      Boolean,
+    )
     p.onNotice(
       `纪要已保存。` +
         (mine ? `我负责的 ${mine} 条 → ${parts.join('、')}` : '') +
@@ -50,7 +61,8 @@ export function MinutesView({ m, ...p }: MeetingProps & { m: Meeting }) {
 
   return (
     <div className="column wide">
-      <div className="split">
+      <PrintDoc m={m} />
+      <div className="split screen-only">
         <article className="split-main">
           <header style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <BackLink label="会议详情" onClick={() => p.go({ page: 'detail', id: m.id })} />
@@ -68,6 +80,10 @@ export function MinutesView({ m, ...p }: MeetingProps & { m: Meeting }) {
               <dd>{whereLabel(m) || KIND_LABEL[m.kind]}</dd>
             </dl>
           </header>
+
+          {importing && (
+            <ImportPanel m={m} at={lastAt} today={p.today} onDone={() => setImporting(false)} onNotice={p.onNotice} />
+          )}
 
           {SECTIONS.map((s, i) => {
             const items = m.notes.filter((n) => n.type === s.type)
@@ -105,6 +121,39 @@ export function MinutesView({ m, ...p }: MeetingProps & { m: Meeting }) {
             <button className="btn" onClick={() => p.go({ page: 'live', id: m.id })}>
               补充记录
             </button>
+          </section>
+
+          <section className="card">
+            <h2>补充腾讯会议的内容</h2>
+            <span className="tiny" style={{ lineHeight: '20px' }}>
+              粘贴腾讯会议导出的智能纪要文字，自动找出你漏记的决议和待办，确认后合并。
+            </span>
+            <button className="btn" onClick={() => setImporting(true)} disabled={importing}>
+              粘贴智能纪要
+            </button>
+          </section>
+
+          <section className="card">
+            <h2>复制 / 导出</h2>
+            <span className="tiny">需要转给别人时用。</span>
+            <div className="btn-row">
+              <button
+                className="btn"
+                onClick={() => void copyText(minutesText(m, 'text'), p.onNotice, '已复制，可以直接粘贴到微信')}
+              >
+                <CopyIcon size={14} />
+                复制文本
+              </button>
+              <button
+                className="btn"
+                onClick={() => void copyText(minutesText(m, 'markdown'), p.onNotice, '已复制 Markdown')}
+              >
+                复制 Markdown
+              </button>
+              <button className="btn" onClick={() => window.print()}>
+                导出 PDF
+              </button>
+            </div>
           </section>
         </aside>
       </div>
@@ -227,5 +276,170 @@ function AddNote({ label, onAdd, type }: { label: string; onAdd: (text: string) 
         }}
       />
     </div>
+  )
+}
+
+/** 打印 / 导出 PDF 时用的只读纪要 */
+function PrintDoc({ m }: { m: Meeting }) {
+  return (
+    <article className="print-only" aria-hidden="true">
+      <h1>{m.title} · 纪要</h1>
+      <p>
+        时间：{longLabel(m.date)} {timeRange(m)}
+        <br />
+        地点：{whereLabel(m) || KIND_LABEL[m.kind]}
+      </p>
+      {SECTIONS.map((s) => {
+        const items = m.notes.filter((n) => n.type === s.type && n.text.trim())
+        if (items.length === 0) return null
+        const List = s.type === 'decision' ? 'ol' : 'ul'
+        return (
+          <section key={s.type}>
+            <h2>{s.title}</h2>
+            <List>
+              {items.map((n) => (
+                <li key={n.id}>
+                  {n.text}
+                  {n.type === 'todo' && todoTail(n) && `（${todoTail(n)}）`}
+                </li>
+              ))}
+            </List>
+          </section>
+        )
+      })}
+    </article>
+  )
+}
+
+const NAME_KEY = 'mylog.meetingName'
+
+function loadName(): string {
+  try {
+    return localStorage.getItem(NAME_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function saveName(name: string) {
+  try {
+    localStorage.setItem(NAME_KEY, name)
+  } catch {
+    // 无痕模式等情况下存不了，下次再填一遍就好
+  }
+}
+
+/** 粘贴腾讯会议智能纪要 → 列出找到的条目 → 勾选后合并 */
+function ImportPanel({
+  m,
+  at,
+  today,
+  onDone,
+  onNotice,
+}: {
+  m: Meeting
+  at: number
+  today: string
+  onDone: () => void
+  onNotice: (text: string) => void
+}) {
+  const [text, setText] = useState('')
+  const [name, setName] = useState(loadName)
+  const [found, setFound] = useState<(NoteInput & { dup: boolean; picked: boolean })[] | null>(null)
+
+  const recognize = () => {
+    saveName(name.trim())
+    const items = parseImported(text, today, name.trim()).map((n) => {
+      const dup = isDuplicate(n.text, m.notes)
+      // 要点通常很多，默认只勾决议、待办、问题
+      return { ...n, dup, picked: !dup && n.type !== 'note' }
+    })
+    setFound(items)
+  }
+
+  const picked = found?.filter((f) => f.picked) ?? []
+
+  return (
+    <section className="import-panel" aria-label="导入腾讯会议智能纪要">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 className="section-title">导入腾讯会议智能纪要</h2>
+        <button className="icon-btn small" aria-label="关闭" onClick={onDone}>
+          <CloseIcon size={14} />
+        </button>
+      </div>
+      {found === null ? (
+        <>
+          <label htmlFor="import-text" className="tiny">
+            在腾讯会议的「智能纪要」里全选复制，粘贴到这里。
+          </label>
+          <textarea id="import-text" className="note" rows={8} value={text} onChange={(e) => setText(e.target.value)} />
+          <div className="field-inline">
+            <label htmlFor="import-name" className="tiny">
+              你在腾讯会议里的名字
+            </label>
+            <input
+              id="import-name"
+              className="text-input"
+              style={{ width: 160, height: 36 }}
+              value={name}
+              placeholder="用来认出你的待办"
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="btn-row">
+            <button className="btn primary" disabled={!text.trim()} onClick={recognize}>
+              识别
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          {found.length === 0 ? (
+            <span className="warn-text">
+              没有找到决议、待办或问题。纪要里需要有「待办」「结论」「问题」这样的小标题。
+            </span>
+          ) : (
+            <span className="tiny">找到 {found.length} 条，勾选要合并的。已有的和要点默认不勾。</span>
+          )}
+          <div className="list">
+            {found.map((f, i) => (
+              <label key={i} className="import-row">
+                <input
+                  type="checkbox"
+                  checked={f.picked}
+                  onChange={() => setFound(found.map((x, j) => (j === i ? { ...x, picked: !x.picked } : x)))}
+                />
+                <span className={'tag tag-' + f.type}>{NOTE_LABEL[f.type]}</span>
+                <span className="note-text">
+                  <span>{f.text}</span>
+                  <NoteMeta n={{ ...f, id: '', at: 0, done: false, taskId: null, syncedDue: null }} today={today} />
+                  {f.dup && <span className="badge">已有</span>}
+                </span>
+              </label>
+            ))}
+          </div>
+          <div className="btn-row">
+            <button
+              className="btn primary"
+              disabled={picked.length === 0}
+              onClick={() => {
+                void importNotes(
+                  m.id,
+                  picked.map(({ type, text, owner, due }) => ({ type, text, owner, due })),
+                  at,
+                )
+                onNotice(`已合并 ${picked.length} 条，记得保存纪要`)
+                onDone()
+              }}
+            >
+              合并 {picked.length} 条
+            </button>
+            <button className="btn" onClick={() => setFound(null)}>
+              重新粘贴
+            </button>
+          </div>
+        </>
+      )}
+    </section>
   )
 }

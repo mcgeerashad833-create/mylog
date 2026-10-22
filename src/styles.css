@@ -325,3 +325,41 @@ a.btn.primary { color: #fff; }
   border-bottom: 2px solid transparent; margin-bottom: -1px;
 }
 .tabs button[aria-selected='true'] { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+
+/* 第二阶段：会前备注、上次留下的待办、导入、搜索、打印 */
+.side-block { display: flex; flex-direction: column; gap: 6px; }
+.side-block h2, .card h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.mini-row { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; }
+.mini-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-top: 9px; overflow-wrap: anywhere; }
+.mini-row.done .mini-text { color: var(--text-3); text-decoration: line-through; }
+.check.small { width: 36px; height: 36px; margin: 0 -4px 0 -8px; }
+.check.small span { width: 16px; height: 16px; }
+.mini-row .icon-btn.small { margin-top: 3px; }
+
+.import-panel {
+  border: 1px solid #d5dcf2; background: #f6f8fd; border-radius: 12px; padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.import-panel textarea { background: #fff; }
+.import-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--line-soft); cursor: pointer; }
+.import-row input { width: 16px; height: 16px; margin: 4px 0 0; accent-color: var(--accent); flex: none; }
+
+.search-box {
+  display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border: 1px solid #e1e3e8; border-radius: 10px;
+}
+.search-box:focus-within { border-color: var(--accent); }
+.search-box input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; height: 100%; font-size: 14px; }
+.search-hit { display: flex; flex-direction: column; gap: 6px; padding-bottom: 14px; border-bottom: 1px solid var(--line-soft); }
+.search-title { align-self: flex-start; font-size: 15px; font-weight: 500; text-align: left; }
+.search-note { display: flex; align-items: flex-start; gap: 10px; line-height: 24px; overflow-wrap: anywhere; }
+mark { background: #fdf0c4; color: inherit; border-radius: 2px; padding: 0 1px; }
+
+.print-only { display: none; }
+@media print {
+  .sidebar, .screen-only, .toast, .drawer { display: none !important; }
+  .main { padding: 0; }
+  .print-only { display: block; font-size: 12pt; line-height: 1.6; color: #000; }
+  .print-only h1 { font-size: 18pt; margin: 0 0 8pt; }
+  .print-only h2 { font-size: 13pt; margin: 14pt 0 4pt; }
+  .print-only ol, .print-only ul { margin: 0; padding-left: 20pt; }
+}
